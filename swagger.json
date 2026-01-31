@@ -1,0 +1,1627 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Recommendo",
+    "description": "Recommendo api docs detail",
+    "version": "0.1"
+  },
+  "produces": ["application/json"],
+  "paths": {
+    "/api/v1/login": {
+      "post": {
+        "x-swagger-router-controller": "auth.login",
+        "operationId": "Auth",
+        "tags": ["Auth"],
+        "description": "Login",
+        "parameters": [
+          {
+            "name": "user_name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "password",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "user_type",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "google_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "apple_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "fb_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "registration_token",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "platform",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/logout": {
+      "post": {
+        "x-swagger-router-controller": "auth.logout",
+        "operationId": "Auth",
+        "tags": ["Auth"],
+        "description": "Logout",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/check_user_status": {
+      "post": {
+        "x-swagger-router-controller": "auth.checkUserExistence",
+        "operationId": "Auth - User Status",
+        "tags": ["Auth"],
+        "description": "User Existence",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/signup": {
+      "post": {
+        "x-swagger-router-controller": "auth.signup",
+        "operationId": "Auth - Signup",
+        "tags": ["Auth"],
+        "description": "Signup",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "password",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "mobile_number",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "is_term_conditions",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "user_type",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "google_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "fb_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "apple_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "profile_url",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "registration_token",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "platform",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/verify_otp": {
+      "post": {
+        "x-swagger-router-controller": "auth.verifyOTP",
+        "operationId": "Auth - verifyOTP",
+        "tags": ["Auth"],
+        "description": "verifyOTP",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "otp",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/update_registration_token": {
+      "post": {
+        "x-swagger-router-controller": "auth.updateRegistrationToken",
+        "operationId": "Auth - updateRegistrationToken",
+        "tags": ["Auth"],
+        "description": "updateRegistrationToken",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "registration_token",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "platform",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/checkout": {
+      "post": {
+        "x-swagger-router-controller": "payment.checkout",
+        "operationId": "Payment - checkout",
+        "tags": ["Payment"],
+        "description": "Payment",
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "payment_for",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/resend_otp": {
+      "post": {
+        "x-swagger-router-controller": "auth.resendOTP",
+        "operationId": "Auth - resendOTP",
+        "tags": ["Auth"],
+        "description": "resendOTP",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/view_profile": {
+      "post": {
+        "x-swagger-router-controller": "auth.viewProfile",
+        "operationId": "Auth - viewProfile",
+        "tags": ["Auth"],
+        "description": "viewProfile",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "is_service_provider",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/show_wallet_balance": {
+      "post": {
+        "x-swagger-router-controller": "auth.showWalletBalance",
+        "operationId": "Auth - showWalletBalance",
+        "tags": ["Auth"],
+        "description": "showWalletBalance",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/edit_profile": {
+      "post": {
+        "x-swagger-router-controller": "auth.editProfile",
+        "operationId": "Auth - editProfile",
+        "tags": ["Auth"],
+        "description": "editProfile",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "mobile_number",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/save_profile": {
+      "post": {
+        "x-swagger-router-controller": "auth.saveProfile",
+        "operationId": "Auth - saveProfile",
+        "tags": ["Auth"],
+        "description": "saveProfile",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "profile",
+            "in": "formData",
+            "type": "file",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/changeMailId": {
+      "post": {
+        "x-swagger-router-controller": "auth.changeMailId",
+        "operationId": "Auth - changeMailId",
+        "tags": ["Auth"],
+        "description": "changeMailId",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/change_password": {
+      "post": {
+        "x-swagger-router-controller": "auth.changePassword",
+        "operationId": "Auth - changePassword",
+        "tags": ["Auth"],
+        "description": "changePassword",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "new_password",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/forgot_password": {
+      "post": {
+        "x-swagger-router-controller": "auth.forgotPassword",
+        "operationId": "Auth - forgotPassword",
+        "tags": ["Auth"],
+        "description": "forgotPassword",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/post_comments": {
+      "post": {
+        "x-swagger-router-controller": "auth.postComments",
+        "operationId": "Auth - postComments",
+        "tags": ["Auth"],
+        "description": "postComments",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "comments",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/service_provider/edit_service": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.createOrEditService",
+        "operationId": "Service Provider - Edit service",
+        "tags": ["ServiceProvider"],
+        "description": "editService",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "business_name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "service",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "availability",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "service_date",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "time",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "business_icon_url",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "business_type",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "business_license",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "address",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/service_provider/update_wallet_balance": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.updateWalletBalance",
+        "operationId": "Service Provider - updateWalletBalance",
+        "tags": ["ServiceProvider"],
+        "description": "updateWalletBalance",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "amount",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "customer_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/service_provider/view_service": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.viewService",
+        "operationId": "Service Provider - View service",
+        "tags": ["ServiceProvider"],
+        "description": "viewService",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/service_provider/list_recommendations": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.listRecommendations",
+        "operationId": "Service Provider - List Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "listRecommendations",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/service_provider/view_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.viewRecommendation",
+        "operationId": "Service Provider - View Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "viewRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/save_payment_details": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.savePaymentDetails",
+        "operationId": "Service Provider - Save Payment Details",
+        "tags": ["ServiceProvider"],
+        "description": "savePaymentDetails",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "amount_paid",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "reference_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "from_wallet",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "recommender_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "customer_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/save_business_details": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.saveBusinessDetails",
+        "operationId": "Service Provider - Save Business Details",
+        "tags": ["ServiceProvider"],
+        "description": "saveBusinessDetails",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "full_name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "mobile_number",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "business_name",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "address",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "business_type",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "shop_license",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/list_active_recommendations": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.listActiveRecommendations",
+        "operationId": "Service Provider - List Active Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "listActiveRecommendations",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/recommendation_history": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.recommendationsHistory",
+        "operationId": "Service Provider - recommendationsHistory",
+        "tags": ["ServiceProvider"],
+        "description": "recommendationsHistory",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/view_recommender_detail": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.viewRecommenderDetail",
+        "operationId": "Service Provider - viewRecommenderDetail",
+        "tags": ["ServiceProvider"],
+        "description": "viewRecommenderDetail",
+        "parameters": [
+          {
+            "name": "recommender_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/view_active_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.viewActiveRecommendation",
+        "operationId": "Service Provider - View Active Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "viewActiveRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/deny_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.denyRecommendation",
+        "operationId": "Service Provider - Deny Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "denyRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/send_connection_request": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.sendConnectionRequest",
+        "operationId": "Service Provider - Send Connection Request",
+        "tags": ["ServiceProvider"],
+        "description": "sendConnectionRequest",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/extend_accept_time_limit": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.extendAcceptTimeLimit",
+        "operationId": "Service Provider - Extend Time Limit",
+        "tags": ["ServiceProvider"],
+        "description": "extendAcceptTimeLimit",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "extend_hours",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "from_wallet",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "amount_paid",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "customer_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/accept_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.acceptRecommendation",
+        "operationId": "Service Provider - Accept Recommendations",
+        "tags": ["ServiceProvider"],
+        "description": "acceptRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/accept_commission_payment": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.acceptCommissionPayment",
+        "operationId": "Service Provider - acceptCommissionPayment",
+        "tags": ["ServiceProvider"],
+        "description": "acceptCommissionPayment",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/decline_commission_payment": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.declineCommissionPayment",
+        "operationId": "Service Provider - declineCommissionPayment",
+        "tags": ["ServiceProvider"],
+        "description": "declineCommissionPayment",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "remarks",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/counter_approve": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.counterApprove",
+        "operationId": "Service Provider - Counter Approve",
+        "tags": ["ServiceProvider"],
+        "description": "counterApprove",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "counter_offer_rate",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "remarks",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/upload_business_icon": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.uploadBusinessIcon",
+        "operationId": "Service Provider - uploadBusinessIcon",
+        "tags": ["ServiceProvider"],
+        "description": "uploadBusinessIcon",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "business_icon",
+            "in": "formData",
+            "type": "file",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/list_contacts": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.listContacts",
+        "operationId": "Service Provider - list contacts",
+        "tags": ["ServiceProvider"],
+        "description": "listContacts",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/list_commissions": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.listCommissions",
+        "operationId": "Service Provider - list commissions",
+        "tags": ["ServiceProvider"],
+        "description": "listCommissions",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/service_rendered": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.serviceRendered",
+        "operationId": "Service Provider - serviceRendered",
+        "tags": ["ServiceProvider"],
+        "description": "serviceRendered",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/service_provider/service_denied": {
+      "post": {
+        "x-swagger-router-controller": "serviceProvider.serviceDenied",
+        "operationId": "Service Provider - serviceRendered",
+        "tags": ["ServiceProvider"],
+        "description": "serviceDenied",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/create_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.createRecommendation",
+        "operationId": "User - Create Recommendations",
+        "tags": ["Recommendations"],
+        "description": "createRecommendation",
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "service_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "recommender_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "consumer_id",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "consumers",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "experienced",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "rating",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "feedback",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "expected_commission",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/recommendations/list_recommendations": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.listRecommendations",
+        "operationId": "Recommendations - List Recommendations",
+        "tags": ["Recommendations"],
+        "description": "listRecommendation",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/view_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.viewRecommendation",
+        "operationId": "Recommendations - View Recommendations",
+        "tags": ["Recommendations"],
+        "description": "viewRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/list_recommended": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.listRecommended",
+        "operationId": "Recommendations - List Recommended",
+        "tags": ["Recommendations"],
+        "description": "listRecommended",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/view_recommended": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.viewRecommended",
+        "operationId": "Recommendations - View Recommended",
+        "tags": ["Recommendations"],
+        "description": "viewRecommended",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/accept_connection_request": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.acceptConnectionRequest",
+        "operationId": "Recommendations - Accept Connection Request",
+        "tags": ["Recommendations"],
+        "description": "acceptConnectionRequest",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/decline_connection_request": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.declineConnectionRequest",
+        "operationId": "Recommendations - Decline Connection Request",
+        "tags": ["Recommendations"],
+        "description": "declineConnectionRequest",
+        "parameters": [
+          {
+            "name": "service_provider_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/list_contacts": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.listContacts",
+        "operationId": "Recommendations - list contacts",
+        "tags": ["Recommendations"],
+        "description": "listConnectionRequest",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/find_user": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.findUser",
+        "operationId": "Recommendations - Find User",
+        "tags": ["Recommendations"],
+        "description": "findUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "page_no",
+            "in": "formData",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "filter",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/find_service": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.findService",
+        "operationId": "Recommendations - findService",
+        "tags": ["Recommendations"],
+        "description": "viewRecommendation",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "recommender_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/show_wallet_balance": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.showWalletBalance",
+        "operationId": "Recommendations - showWalletBalance",
+        "tags": ["Recommendations"],
+        "description": "showWalletBalance",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/accept_counter_offer": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.acceptCounterOffer",
+        "operationId": "Recommendations - acceptCounterOffer",
+        "tags": ["Recommendations"],
+        "description": "acceptCounterOffer",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/decline_counter_offer": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.declineCounterOffer",
+        "operationId": "Recommendations - declineCounterOffer",
+        "tags": ["Recommendations"],
+        "description": "declineCounterOffer",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/rate_service": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.rateService",
+        "operationId": "Recommendations - rateService",
+        "tags": ["Recommendations"],
+        "description": "rateService",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "rating",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "comments",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/get_contacts": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.getContacts",
+        "operationId": "Recommendations - getContacts",
+        "tags": ["Recommendations"],
+        "description": "getContacts",
+        "parameters": [
+          {
+            "name": "contacts",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/list_commissions": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.listCommissions",
+        "operationId": "Recommendations - listCommissions",
+        "tags": ["Recommendations"],
+        "description": "listCommissions",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/invite_user": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.inviteUser",
+        "operationId": "Recommendations - inviteUser",
+        "tags": ["Recommendations"],
+        "description": "inviteUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "contact_number",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/recommendations/delete_recommendation": {
+      "post": {
+        "x-swagger-router-controller": "recommendation.deleteRecommendation",
+        "operationId": "Recommendations - deleteRecommendation",
+        "tags": ["Recommendations"],
+        "description": "deleteRecommendation",
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "formData",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/wallet/add_wallet_money": {
+      "post": {
+        "x-swagger-router-controller": "wallet.addWalletBalance",
+        "operationId": "Add money to the wallet",
+        "tags": ["Wallet"],
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "formData",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "service_id",
+            "in": "query",
+            "type": "integer",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/wallet/withdraw_amount": {
+      "post": {
+        "x-swagger-router-controller": "wallet.addWalletBalance",
+        "operationId": "Withdraw money from the wallet",
+        "tags": ["Wallet"],
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "formData",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "withdraw_user_type",
+            "in": "query",
+            "type": "string",
+            "enum": ["USER", "SERVICE_PROVIDER"],
+            "required": true
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "type": "integer",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+
+    "/api/v1/wallet/user/get_balance": {
+      "get": {
+        "x-swagger-router-controller": "wallet.addWalletBalance",
+        "operationId": "get user wallet balance",
+        "tags": ["Wallet"],
+        "parameters": [
+          {
+            "name": "wallet_user_id",
+            "in": "query",
+            "type": "integer",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    },
+    "/api/v1/wallet/service_provider/get_balance": {
+      "get": {
+        "x-swagger-router-controller": "wallet.addWalletBalance",
+        "operationId": "get service provider wallet balance",
+        "tags": ["Wallet"],
+        "parameters": [
+          {
+            "name": "wallet_service_id",
+            "in": "query",
+            "type": "integer",
+            "required": true
+          }
+        ],
+        "responses": {}
+      }
+    }
+  }
+}

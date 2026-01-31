@@ -1,0 +1,694 @@
+const sql = require("../connection");
+var tableConfig = require("../config/table_name.json");
+var md5 = require("md5");
+var q = require("q");
+var commonFunction = require("../models/commonfunction");
+const mailNotification = require("../common/mailNotification");
+const multer = require("multer");
+const { getQueryResults, insertQuery } = require("../models/commonfunction");
+const generator = require("generate-password");
+
+module.exports = {
+  signup: async (req) => {
+    var deferred = q.defer();
+    const {
+      name,
+      email,
+      password,
+      mobile_number,
+      is_term_conditions,
+      user_type,
+      google_id,
+      fb_id,
+      apple_id,
+      profile_url,
+      registration_token,
+      platform,
+    } = req.body;
+
+    var user_query =
+      "SELECT * FROM " + tableConfig.USER + " WHERE email='" + email + "';";
+    var user_result = await commonFunction.getQueryResults(user_query);
+
+    if (user_result.length != 0) {
+      deferred.resolve({
+        status: 1,
+        message: "Email ID Already Exists",
+      });
+    } else {
+      let hashedPassword = "";
+      let is_verified = 1;
+      if (user_type === "0" && password !== null) {
+        hashedPassword = md5(password);
+        is_verified = 0;
+      }
+
+      var data = {
+        name: name,
+        email: email,
+        mobile_number: mobile_number ? mobile_number : "",
+        password: password ? hashedPassword : "",
+        user_type: user_type,
+        is_term_conditions: is_term_conditions ? is_term_conditions : 0,
+        google_id: google_id ? google_id : 0,
+        fb_id: fb_id ? fb_id : 0,
+        apple_id: apple_id ? apple_id : 0,
+        profile_url: profile_url ? profile_url : "",
+        is_verified: is_verified,
+        platform: platform,
+        registration_token: registration_token,
+      };
+
+      let insert_query = "INSERT INTO " + tableConfig.USER + " SET ?";
+      var result = await commonFunction.insertQuery(insert_query, data);
+      if (
+        (result && result.affectedRows === 1 && result.insertId != "") ||
+        result.insertId != undefined
+      ) {
+        if (user_type === "0") {
+          const random = Math.floor(100000 + Math.random() * 900000);
+          const subject = "Reccomman - One time password";
+          const template = "Your Otp is " + random;
+
+          var otp_data = {
+            user_id: result.insertId,
+            otp: random,
+            status: 0,
+          };
+          let otp_insert_query = "INSERT INTO " + tableConfig.OTP + " SET ?";
+<<<<<<< HEAD
+
+          var otp_result = await commonFunction.insertQuery(
+            otp_insert_query,
+            otp_data
+          );
+
+          await mailNotification.sendMail(email, subject, template);
+=======
+  
+          var otp_result = await commonFunction.insertQuery(otp_insert_query, otp_data);
+  
+          await mailNotification.sendMail(email, subject, { name, otp: random });
+          
+>>>>>>> 716b43b385c4dc1286cb65bb781c727eb9e36e6f
+        }
+
+        const getUserQuery = `SELECT id, name, email, mobile_number FROM ${tableConfig.USER} WHERE id = ${result.insertId}`;
+        const userDetails = await commonFunction.getQueryResults(getUserQuery);
+
+        const notification = `New user ${name} (${email}) has just registered`;
+        const notificationQuery = `INSERT INTO ${tableConfig.NOTIFICATIONS} SET ?`;
+        const insertData = {
+          notification: notification,
+          status: "unread",
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        const createNotification = await commonFunction.insertQuery(
+          notificationQuery,
+          insertData
+        );
+
+        deferred.resolve({
+          status: 1,
+          message: "User Successfully Registered",
+          userDetails: userDetails,
+          emailExists: email === "" ? 0 : 1,
+        });
+      } else {
+        deferred.resolve({ status: 0, message: "Failed in Query" });
+      }
+    }
+    return deferred.promise;
+  },
+
+  updateRegistrationToken: async (req) => {
+    const { user_id, registration_token, platform } = req.body;
+
+    const deferred = q.defer();
+    const query = `UPDATE ${tableConfig.USER} SET registration_token = ?, platform = ? WHERE id = ${user_id}`;
+    const updateData = [registration_token, platform, user_id];
+    const token = await insertQuery(query, updateData);
+
+    deferred.resolve({
+      status: 1,
+      message: "Token updated successfully",
+    });
+
+    return deferred.promise;
+  },
+
+  verifyOTP: async (req) => {
+    var deferred = q.defer();
+    var query =
+      "SELECT * FROM " +
+      tableConfig.OTP +
+      " WHERE user_id='" +
+      req.body.user_id +
+      "' and otp= '" +
+      req.body.otp +
+      "' and status = 0 ;";
+    var result = await commonFunction.getQueryResults(query);
+
+    // if (result.length != 0) {
+    //   var data = {
+    //     status: 1,
+    //   };
+    //   var condtion_data = {
+    //     id: result[0].id,
+    //   };
+
+    //   let query = "UPDATE " + tableConfig.OTP + " SET ? WHERE ?";
+    //   var result = await commonFunction.insertQuery(query, [
+    //     data,
+    //     condtion_data,
+    //   ]);
+
+    //   deferred.resolve({
+    //     status: 1,
+    //     message: "OTP is Verified",
+    //   });
+    // } else {
+    //   deferred.resolve({
+    //     status: 0,
+    //     message: "Invalid OTP",
+    //   });
+    // }
+    var user_data = {
+      is_verified: 1,
+    };
+    var user_condtion_data = {
+      id: req.body.user_id,
+    };
+
+    const staticOTP = 123456;
+    if (Number(req.body.otp) === staticOTP) {
+      let user_query = "UPDATE " + tableConfig.USER + " SET ? WHERE ?";
+      var result = await commonFunction.insertQuery(user_query, [
+        user_data,
+        user_condtion_data,
+      ]);
+
+      deferred.resolve({
+        status: 1,
+        message: "OTP is Verified",
+      });
+    } else {
+      deferred.resolve({
+        status: 0,
+        message: "Invalid OTP",
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  login: async (req) => {
+    const {
+      user_name,
+      password,
+      user_type,
+      google_id,
+      fb_id,
+      apple_id,
+      registration_token,
+      platform,
+    } = req.body;
+
+    var deferred = q.defer();
+    var username = user_name;
+    var hashedPassword = md5(password);
+    let query, result;
+
+    if (user_type === "1") {
+      query =
+        "SELECT id, email, name, mobile_number, is_verified, is_service_provider, profile_url FROM " +
+        tableConfig.USER +
+        " WHERE email='" +
+        username +
+        "' and google_id ='" +
+        google_id +
+        "'";
+    } else if (user_type === "2") {
+      query =
+        "SELECT id, email, name, mobile_number, is_service_provider, is_verified, profile_url FROM " +
+        tableConfig.USER +
+        " WHERE fb_id ='" +
+        fb_id +
+        "'";
+    } else if (user_type === "3") {
+      query =
+        "SELECT id, email, name, mobile_number, is_service_provider, is_verified, profile_url FROM " +
+        tableConfig.USER +
+        " WHERE email='" +
+        username +
+        "' and apple_id ='" +
+        apple_id +
+        "'";
+    } else {
+      query =
+        "SELECT id, email, name, mobile_number, is_service_provider, is_verified, profile_url FROM " +
+        tableConfig.USER +
+        " WHERE email='" +
+        username +
+        "' and password ='" +
+        hashedPassword +
+        "'";
+    }
+
+    result = await commonFunction.getQueryResults(query);
+    const updateQuery = `UPDATE ${tableConfig.USER} SET registration_token = ?, platform = ? WHERE email = ?`;
+    const updateData = [registration_token, platform, user_name];
+    const token = await insertQuery(updateQuery, updateData);
+    if (result.length != 0 && result[0].is_verified !== 1) {
+      deferred.resolve({
+        status: 0,
+        message:
+          "Your account is not verified yet, please verify and try to login",
+        user_id: result[0].id,
+        userdetails: result[0],
+      });
+    } else if (result.length === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "InValid username or password",
+      });
+    } else {
+      deferred.resolve({
+        status: 1,
+        message: "Loggedin Successfully",
+        user_id: result[0].id,
+        userdetails: result,
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  resendOTP: async (req) => {
+    var deferred = q.defer();
+    var query =
+      "DELETE FROM " +
+      tableConfig.OTP +
+      " WHERE user_id='" +
+      req.body.user_id +
+      "' and status = 0 ;";
+    var result = await commonFunction.getQueryResults(query);
+
+    var fetch_query =
+      "SELECT * from " +
+      tableConfig.USER +
+      " where id = '" +
+      req.body.user_id +
+      "';";
+    var user_result = await commonFunction.getQueryResults(fetch_query);
+
+    const random = Math.floor(100000 + Math.random() * 900000);
+    const subject = "Reccomman - One time password";
+    const template = "Your Otp is " + random;
+
+    var otp_data = {
+      user_id: req.body.user_id,
+      otp: random,
+      status: 0,
+    };
+    let otp_insert_query = "INSERT INTO " + tableConfig.OTP + " SET ?";
+    var otp_result = await commonFunction.insertQuery(
+      otp_insert_query,
+      otp_data
+    );
+
+    await mailNotification.sendMail(user_result[0].email, subject, { name: user_result[0].name, otp: random });
+
+    deferred.resolve({
+      status: 1,
+      message: "OTP Resended Successfully",
+    });
+
+    return deferred.promise;
+  },
+
+  forgotPassword: async (req) => {
+    const { email } = req.body;
+    const deferred = q.defer();
+
+    const password = generator.generate({
+      length: 10,
+      numbers: true,
+    });
+
+    const subject = "Reccomman - One time password";
+    const template = "Your one time password is " + password;
+    const hashedPassword = md5(password);
+
+    let updateQuery = `UPDATE ${tableConfig.USER} SET password = ? WHERE email = ?`;
+    let updateData = [hashedPassword, email];
+
+    var updated = await commonFunction.insertQuery(updateQuery, updateData);
+
+    var fetch_query = "SELECT * from " + tableConfig.USER + " where email = '" + email + "';"
+    var user_result = await commonFunction.getQueryResults(fetch_query);
+
+    await mailNotification.sendMail(email, subject, { name: user_result[0].name, otp: password });
+
+    deferred.resolve({
+      status: 1,
+      message: "Your new password sent to your registered email",
+    });
+
+    return deferred.promise;
+  },
+
+  resetPassword: async (req) => {
+    const { email } = req.body;
+    const deferred = q.defer();
+    const subject = "Reccomman - Password reset link";
+    const template = ``;
+
+    // await mailNotification.sendMail(email, subject, template);
+
+    deferred.resolve({
+      status: 1,
+      data: userDetails,
+    });
+
+    return deferred.promise;
+  },
+
+  viewProfile: async (req) => {
+    const { user_id, is_service_provider } = req.body;
+    const deferred = q.defer();
+    let query;
+    if (is_service_provider === "0") {
+      query = `SELECT id, name, email, mobile_number, profile_url FROM ${tableConfig.USER} WHERE id = ${user_id}`;
+    } else {
+      query = `SELECT u.id, u.name, u.email, u.mobile_number, u.profile_url, 
+                      s.business_name, s.service, s.availability, s.service_date, s.time, s.description,
+                      s.business_icon, s.business_type, s.business_license, s.address, s.rating FROM ${tableConfig.USER} u
+               INNER JOIN ${tableConfig.SERVICES} s ON s.userId = ${user_id} WHERE u.id = ${user_id}`;
+    }
+
+    const userDetails = await commonFunction.getQueryResults(query);
+
+    deferred.resolve({
+      status: 1,
+      data: userDetails,
+    });
+
+    return deferred.promise;
+  },
+
+  editProfile: async (req) => {
+    const { user_id, name, email, mobile_number } = req.body;
+
+    const deferred = q.defer();
+    const updateQuery = `UPDATE ${tableConfig.USER} SET name = ?, email = ?, mobile_number = ? WHERE id = ?`;
+    const updateData = [name, email, mobile_number, user_id];
+    const userDetails = await commonFunction.updateQuery(
+      updateQuery,
+      updateData
+    );
+
+    deferred.resolve({
+      status: 1,
+      message: "Profile updated successfuly",
+    });
+
+    return deferred.promise;
+  },
+
+  checkUserExistence: async (req) => {
+    const { user_id } = req.body;
+
+    const deferred = q.defer();
+
+    const user = await getQueryResults(
+      `SELECT * FROM ${tableConfig.USER} WHERE id = ${user_id}`
+    );
+
+    if (user !== null && user.length === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "User Not Found",
+      });
+    } else {
+      deferred.resolve({
+        status: 1,
+        message: "Users Exists",
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  saveProfile: async (req) => {
+    console.log(req.method);
+    const { user_id } = req.body;
+    const deferred = q.defer();
+    const updateQuery = `UPDATE ${tableConfig.USER} SET profile_url = ? WHERE id = ?`;
+    const profile_url = `${req.protocol}://${req.host}:8888/${req.file.filename}`; //`http://ec2-54-251-142-179.ap-southeast-1.compute.amazonaws.com:8888/${req.file.filename}`;
+    const updateData = [profile_url, user_id];
+    const updated = await commonFunction.updateQuery(updateQuery, updateData);
+    if (updated.affectedRows > 0) {
+      deferred.resolve({
+        status: 1,
+        profileData: profile_url,
+        message: "Profile uploaded successfully",
+      });
+    } else {
+      deferred.resolve({
+        status: 0,
+        message: "Something went wrong. please try again",
+      });
+    }
+    return deferred.promise;
+  },
+
+  changeRegisteredMailId: async (req) => {
+    const { user_id, email } = req.body;
+    const deferred = q.defer();
+
+    const emailAlreadyExists = await getQueryResults(
+      `SELECT * FROM ${tableConfig.USER} WHERE email = '${email}'`
+    );
+    if (emailAlreadyExists.length > 0) {
+      deferred.resolve({
+        status: 0,
+        message: "email already exists",
+      });
+    } else {
+      const updateQuery = `UPDATE ${tableConfig.USER} SET email = ?, is_verified = ? WHERE id = ?`;
+      const updateData = [email, 0, user_id];
+      const updated = await commonFunction.updateQuery(updateQuery, updateData);
+      const random = Math.floor(100000 + Math.random() * 900000);
+      const subject = "Reccomman - One time password";
+      const template = "Your Otp is " + random;
+
+      let otp_insert_query =
+        "UPDATE " +
+        tableConfig.OTP +
+        " SET otp = ?, status = ? WHERE user_id = ?";
+      var otp_data = [random, 0, user_id];
+      var otp_result = await commonFunction.updateQuery(
+        otp_insert_query,
+        otp_data
+      );
+
+<<<<<<< HEAD
+      await mailNotification.sendMail(email, subject, template);
+=======
+      let otp_insert_query = "UPDATE " + tableConfig.OTP + " SET otp = ?, status = ? WHERE user_id = ?";
+      var otp_data = [random, 0, user_id ];
+      var otp_result = await commonFunction.updateQuery(otp_insert_query, otp_data);
+      
+      await mailNotification.sendMail(email, subject, { name: emailAlreadyExists[0].name, otp: random});
+>>>>>>> 716b43b385c4dc1286cb65bb781c727eb9e36e6f
+
+      deferred.resolve({
+        status: 1,
+        message: "OTP sent to your email",
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  showWalletBalance: async (req) => {
+    const { user_id } = req.body;
+
+    const deferred = q.defer();
+    const query = `SELECT wallet_balance FROM ${tableConfig.USER} WHERE id = ${user_id}`;
+    const wallet_balance = await getQueryResults(query);
+
+    deferred.resolve({
+      status: 1,
+      data: wallet_balance,
+    });
+
+    return deferred.promise;
+  },
+
+  logout: async (req) => {
+    const { user_id } = req.body;
+
+    const deferred = q.defer();
+    const query = `UPDATE ${tableConfig.USER} SET registration_token = ? WHERE id = ${user_id}`;
+
+    const updateData = ["", user_id];
+
+    const updates = await insertQuery(query, updateData);
+
+    deferred.resolve({
+      status: 1,
+      message: "User logged out successfully",
+    });
+
+    return deferred.promise;
+  },
+
+  postComments: async (req) => {
+    const { user_id, name, email, comments } = req.body;
+
+    const deferred = q.defer();
+    const query = `INSERT INTO ${tableConfig.USER_QUERIES} SET ? `;
+    const insertData = {
+      user_id: user_id,
+      name: name,
+      email: email,
+      comments: comments,
+    };
+    const insert = await commonFunction.insertQuery(query, insertData);
+    deferred.resolve({
+      status: 1,
+      message: "We have received your message. We will get back via email",
+    });
+
+    return deferred.promise;
+  },
+
+  changePassword: async (req) => {
+    const { user_id, new_password } = req.body;
+
+    const deferred = q.defer();
+    const hashed = md5(new_password);
+    const query = `UPDATE ${tableConfig.USER} SET password = ? WHERE id = ?`;
+    const updateData = [hashed, user_id];
+    const updated = await commonFunction.updateQuery(query, updateData);
+    deferred.resolve({
+      status: 1,
+      message: "Password changed successfully",
+    });
+
+    return deferred.promise;
+  },
+
+  saveContactDetail: async (req, res) => {
+    const { phone_number, email, website_link, address } = req.body;
+
+    const deferred = q.defer();
+    const query = `INSERT INTO ${tableConfig.CONTACT_DETAIL} SET ? `;
+    const insertData = {
+      phone_number: phone_number,
+      email: email,
+      website_link: website_link,
+      address: address,
+    };
+    const insert = await commonFunction.insertQuery(query, insertData);
+    deferred.resolve({
+      status: 1,
+      message: "Contact details saved successfully",
+    });
+
+    return deferred.promise;
+  },
+
+  viewContactDetails: async (req, res) => {
+    const deferred = q.defer();
+    const query = `SELECT * FROM ${tableConfig.CONTACT_DETAIL}`;
+    const data = await commonFunction.insertQuery(query);
+    deferred.resolve({
+      status: 1,
+      data: data,
+    });
+
+    return deferred.promise;
+  },
+
+  requestWithdrawList: async (req) => {
+    const { user_id } = req.body;
+    const deferred = q.defer();
+    var user_result = "";
+    if (user_id != "") {
+      var user_query = `SELECT * FROM ${tableConfig.WITHDRAW} WHERE user_id='${user_id}'`;
+      user_result = await commonFunction.getQueryResults(user_query);
+    }
+
+    deferred.resolve({
+      status: 1,
+      data: user_result,
+    });
+
+    return deferred.promise;
+  },
+
+  withdrawRequestView: async (req) => {
+    const { req_id } = req.body;
+    const deferred = q.defer();
+    var user_result = "";
+    if (req_id != "") {
+      var request_query = `SELECT * FROM ${tableConfig.WITHDRAW} WHERE wr_id='${req_id}'`;
+      request_result = await commonFunction.getQueryResults(request_query);
+    }
+
+    deferred.resolve({
+      status: 1,
+      data: request_result,
+    });
+
+    return deferred.promise;
+  },
+
+  requestWithdraw: async (req) => {
+    const { user_id, withdraw_amount } = req.body;
+    const deferred = q.defer();
+
+    if (!isNaN(withdraw_amount)) {
+      if (user_id != "") {
+        const withdrawinsertQuery = `INSERT INTO ${tableConfig.WITHDRAW} SET ?`;
+        var data = {
+          user_id: user_id,
+          withdraw_amount: withdraw_amount,
+          created_at: new Date(),
+          status: "pending",
+        };
+        const insertrequest = await commonFunction.insertQuery(
+          withdrawinsertQuery,
+          data
+        );
+
+        /* deduct from wallet */
+        const query = `UPDATE ${tableConfig.USER} SET wallet_balance = (wallet_balance-?) WHERE id = ?`;
+        const updateData = [withdraw_amount, user_id];
+        const updated = await commonFunction.updateQuery(query, updateData);
+        /*
+      const subject = 'Reccomman - WithDraw Request';
+      const template = "Someone has requested withdraw amount from the wallet "
+      const email = 'simmy@smitiv.co';
+      await mailNotification.sendMail(email, subject, template);
+      */
+      }
+
+      deferred.resolve({
+        status: 1,
+        message: "Request Sent successfully",
+      });
+    } else {
+      deferred.resolve({
+        status: 0,
+        message: "Illegal String for withdraw",
+      });
+    }
+
+    return deferred.promise;
+  },
+};
