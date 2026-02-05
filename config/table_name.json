@@ -1,0 +1,18 @@
+{
+  "USER": "user",
+  "OTP" : "otp_verification",
+  "SERVICES": "services",
+  "RECOMMENDATIONS": "recommendations",
+  "CONNECTIONS": "connections",
+  "BUSINESS_DETAILS": "business_details",
+  "INVITATIONS": "invitations",
+  "RECOMMENDATION_STATUS_TERMS": "recommendation_status_terms",
+  "RECOMMENDATIONs_META": "recommendations_meta",
+  "USER_QUERIES": "user_queries",
+  "RATING": "rating",
+  "NOTIFICATIONS": "notifications",
+  "COMMISSIONS": "commissions",
+  "CUSTOMER": "customers",
+  "CONTACT_DETAIL": "contact_details",
+  "WITHDRAW":"withdraw_request"
+}
