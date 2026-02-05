@@ -105,68 +105,54 @@ module.exports = {
         const {platform, recommender_name, provider_token, consumer_token, consumer_name} = users[0];
         const recommendationId = inserted.insertId;
         if (consumer_token !== "" && consumer_token !== null) {
+          const consumerTitle = "Recommendation";
+          const consumerBody = `Recommendation has successfully been made by ${recommender_name} to ${consumer_name}`;
           const baseMessage = {
             data: {
-              title: "Recommendation",
-              body: `Recommendation has successfully been made by ${recommender_name} to ${consumer_name} `,
+              title: consumerTitle,
+              body: consumerBody,
             },
             token: consumer_token,
-          };
-
-          if (platform === "android") {
-            baseMessage.android = {
+            // Required for Android to show notification when app is in background
+            notification: {
+              title: consumerTitle,
+              body: consumerBody,
+            },
+            android: {
               priority: "high",
-            };
-            baseMessage.apns = {
+            },
+            apns: {
               headers: {
                 "apns-priority": "10",
               },
-            };
-          } else {
-            baseMessage.notification = {
-              title: "Recommendation",
-              body: `Recommendation has successfully been made by ${recommender_name} to ${consumer_name} `,
-            };
-            baseMessage.apns = {
-              headers: {
-                "apns-priority": "10",
-              },
-            };
-          }
+            },
+          };
 
           pushNotification.sendMessage(baseMessage);
         }
+        const providerTitle = "New Recommendation";
+        const providerBody = `${recommender_name} sent you a recommendation`;
         const baseMessage = {
           data: {
-            title: "New Recommendation",
-            body: `${recommender_name} sent you a recommendation`,
+            title: providerTitle,
+            body: providerBody,
             recommendation_id: `${recommendationId}`,
           },
           token: provider_token,
+          notification: {
+            title: providerTitle,
+            body: providerBody,
+          },
+          android: {
+            priority: "high",
+          },
+          apns: {
+            headers: {
+              "apns-priority": "10",
+            },
+          },
         };
 
-        if (platform === "android") {
-          baseMessage.android = {
-            priority: "high",
-          };
-          baseMessage.apns = {
-            headers: {
-              "apns-priority": "10",
-            },
-          };
-        } else {
-          baseMessage.notification = {
-            title: "New Recommendation",
-            body: `${recommender_name} sent you a recommendation`,
-          };
-          baseMessage.apns = {
-            headers: {
-              "apns-priority": "10",
-            },
-          };
-        }
-
-        // Send push notification
         pushNotification.sendMessage(baseMessage);
       }
 
