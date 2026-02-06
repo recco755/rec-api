@@ -150,6 +150,15 @@ module.exports = {
     const updateData = [registration_token, platform, user_id];
     const token = await insertQuery(query, updateData);
 
+    if (registration_token && String(registration_token).trim() !== "") {
+      // user_devices: expects (user_id, fcm_token, platform, created_at, updated_at), UNIQUE(user_id, fcm_token)
+      const deviceQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE fcm_token = VALUES(fcm_token), platform = VALUES(platform), updated_at = NOW()`;
+      await insertQuery(deviceQuery, [user_id, registration_token, platform || "android"]).catch((err) => {
+        console.error("[user_devices] insert/update failed:", err.message);
+      });
+    }
+
     deferred.resolve({
       status: 1,
       message: "Token updated successfully",
@@ -329,9 +338,24 @@ module.exports = {
           }
         );
 
-        const query = `UPDATE ${tableConfig.USER} SET registration_token = ?, platform = ? WHERE id = ?`;
-        const updateData = [jwttoken, platform, result[0].id];
+        let query;
+        let updateData;
+        if (registration_token && String(registration_token).trim() !== "") {
+          query = `UPDATE ${tableConfig.USER} SET token = ?, registration_token = ?, platform = ? WHERE id = ?`;
+          updateData = [jwttoken, registration_token, platform, result[0].id];
+        } else {
+          query = `UPDATE ${tableConfig.USER} SET token = ? WHERE id = ?`;
+          updateData = [jwttoken, result[0].id];
+        }
         const updatetoken = await insertQuery(query, updateData);
+
+        if (registration_token && String(registration_token).trim() !== "" && tableConfig.USER_DEVICES) {
+          const deviceQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE fcm_token = VALUES(fcm_token), platform = VALUES(platform), updated_at = NOW()`;
+          await insertQuery(deviceQuery, [result[0].id, registration_token, platform || "android"]).catch((err) => {
+            console.error("[user_devices] insert/update on login failed:", err.message);
+          });
+        }
 
         result[0].token = jwttoken;
         deferred.resolve({
