@@ -5,7 +5,7 @@ var q = require("q");
 var commonFunction = require("../models/commonfunction");
 const mailNotification = require("../common/mailNotification");
 const multer = require("multer");
-const {getQueryResults, insertQuery} = require("../models/commonfunction");
+const {getQueryResults, insertQuery, updateQuery} = require("../models/commonfunction");
 const generator = require("generate-password");
 const jwt = require("jsonwebtoken");
 
@@ -150,13 +150,17 @@ module.exports = {
     const updateData = [registration_token, platform, user_id];
     const token = await insertQuery(query, updateData);
 
-    if (registration_token && String(registration_token).trim() !== "") {
-      // user_devices: expects (user_id, fcm_token, platform, created_at, updated_at), UNIQUE(user_id, fcm_token)
-      const deviceQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE fcm_token = VALUES(fcm_token), platform = VALUES(platform), updated_at = NOW()`;
-      await insertQuery(deviceQuery, [user_id, registration_token, platform || "android"]).catch((err) => {
-        console.error("[user_devices] insert/update failed:", err.message);
-      });
+    if (registration_token && String(registration_token).trim() !== "" && tableConfig.USER_DEVICES) {
+      const platformVal = platform || "android";
+      const deviceUpdateQuery = `UPDATE ${tableConfig.USER_DEVICES} SET fcm_token = ?, platform = ?, updated_at = NOW() WHERE user_id = ?`;
+      const updateRes = await updateQuery(deviceUpdateQuery, [registration_token, platformVal, user_id]).catch(() => null);
+      const affected = (updateRes && typeof updateRes.affectedRows !== "undefined") ? updateRes.affectedRows : 0;
+      if (affected === 0) {
+        const deviceInsertQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())`;
+        await insertQuery(deviceInsertQuery, [user_id, registration_token, platformVal]).catch((err) => {
+          console.error("[user_devices] insert failed:", err && err.message);
+        });
+      }
     }
 
     deferred.resolve({
@@ -350,11 +354,16 @@ module.exports = {
         const updatetoken = await insertQuery(query, updateData);
 
         if (registration_token && String(registration_token).trim() !== "" && tableConfig.USER_DEVICES) {
-          const deviceQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())
-            ON DUPLICATE KEY UPDATE fcm_token = VALUES(fcm_token), platform = VALUES(platform), updated_at = NOW()`;
-          await insertQuery(deviceQuery, [result[0].id, registration_token, platform || "android"]).catch((err) => {
-            console.error("[user_devices] insert/update on login failed:", err.message);
-          });
+          const platformVal = platform || "android";
+          const deviceUpdateQuery = `UPDATE ${tableConfig.USER_DEVICES} SET fcm_token = ?, platform = ?, updated_at = NOW() WHERE user_id = ?`;
+          const updateRes = await updateQuery(deviceUpdateQuery, [registration_token, platformVal, result[0].id]).catch(() => null);
+          const affected = (updateRes && typeof updateRes.affectedRows !== "undefined") ? updateRes.affectedRows : 0;
+          if (affected === 0) {
+            const deviceInsertQuery = `INSERT INTO ${tableConfig.USER_DEVICES} (user_id, fcm_token, platform, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())`;
+            await insertQuery(deviceInsertQuery, [result[0].id, registration_token, platformVal]).catch((err) => {
+              console.error("[user_devices] insert on login failed:", err && err.message);
+            });
+          }
         }
 
         result[0].token = jwttoken;
