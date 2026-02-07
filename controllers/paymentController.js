@@ -168,7 +168,7 @@ async function updateCustomer(event, wb = false) {
           const users = await getQueryResults(`SELECT u.name as service_provider_name,
                                       u.registration_token as provider_token,
                                       u1.name as recommender_name, 
-                                      COALESCE(u1.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u1.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token,
+                                      u1.registration_token as recommender_token,
                                       u1.platform as platform
                                       FROM ${tableConfig.USER} u
                               LEFT JOIN ${tableConfig.USER} u1 ON u1.id = '${recommendation[0].recommender_id}'
@@ -271,7 +271,7 @@ async function updateCustomer(event, wb = false) {
           const recommendation = await getQueryResults(`SELECT * FROM ${tableConfig.RECOMMENDATIONS}
                                                             WHERE id = '${customer[0].recommendation_id}'`);
 
-          const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+          const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                                     u.platform as platform,
                                                     u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                                     LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id

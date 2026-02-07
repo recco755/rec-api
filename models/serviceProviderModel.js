@@ -237,7 +237,7 @@ module.exports = {
 
     console.log(inserted);
 
-    const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                               u.platform as platform,
                                               u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                             LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -330,7 +330,7 @@ module.exports = {
     const updateData = [status, new Date(), remarks, recommendation_id];
     const service = await commonFunction.updateQuery(query, updateData);
 
-    const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                                  u.platform as platform,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                 LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -509,7 +509,7 @@ module.exports = {
         const createNotification = await commonFunction.insertQuery(notificationQuery, insertNotificationData);
       }
 
-      const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+      const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                                 u.platform as platform,
                                                 u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                                 LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -602,7 +602,7 @@ module.exports = {
           const createNotification = await commonFunction.insertQuery(notificationQuery, insertNotificationData);
         }
 
-        const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+        const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                         u.platform as platform,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                         LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -666,7 +666,7 @@ module.exports = {
         transactionStatus[0].status === "succeeded" &&
         transactionStatus[0].transaction_updated === "1"
       ) {
-        const users = getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+        const users = getQueryResults(`SELECT u.registration_token as recommender_token, 
                                               u.platform as platform, 
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                         LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -841,7 +841,7 @@ module.exports = {
         updateServiceProviderWallet = await commonFunction.getQueryResults(serviceProviderQuery);
         updateUserWallet = await commonFunction.getQueryResults(recommenderQuery);
 
-        const userQuery = `SELECT u.name as service_provider_name, COALESCE(u1.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u1.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, u1.platform as recommender_platform, u1.name as recommender_name FROM ${tableConfig.USER} u
+        const userQuery = `SELECT u.name as service_provider_name, u1.registration_token as recommender_token, u1.platform as recommender_platform, u1.name as recommender_name FROM ${tableConfig.USER} u
                                LEFT JOIN ${tableConfig.USER} u1 ON u1.id = ${recommender_id}
                                WHERE u.id = ${service_provider_id}`;
         const user = await getQueryResults(userQuery);
@@ -914,7 +914,7 @@ module.exports = {
           recommenderQuery = `UPDATE ${tableConfig.USER} SET wallet_balance = wallet_balance + ${recommenderCommission} WHERE id = ${recommender_id}`;
           updateUserWallet = await commonFunction.getQueryResults(recommenderQuery);
 
-          const userQuery = `SELECT u.name as service_provider_name, u.platform as service_platform, u.registration_token as service_provider_token, COALESCE(u1.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u1.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, u1.platform as recommender_platform, u1.name as recommender_name FROM ${tableConfig.USER} u
+          const userQuery = `SELECT u.name as service_provider_name, u.platform as service_platform, u.registration_token as service_provider_token, u1.registration_token as recommender_token, u1.platform as recommender_platform, u1.name as recommender_name FROM ${tableConfig.USER} u
                                 LEFT JOIN ${tableConfig.USER} u1 ON u1.id = ${recommender_id}
                                 WHERE u.id = ${service_provider_id}`;
 
@@ -1146,7 +1146,7 @@ module.exports = {
     //                     meta_key: 'counter_offered_at'}
     // const insertedStatus = await commonFunction.insertQuery(insertStatusQuery, statusData);
 
-    const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                                     u.platform as platform,
                                                     u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                        LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
@@ -1385,7 +1385,7 @@ module.exports = {
     };
     const inserted = await commonFunction.insertQuery(insertQuery, insertData);
 
-    const user = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const user = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                         u.platform as platform, 
                                         u2.name as consumer_name,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
@@ -1456,7 +1456,7 @@ module.exports = {
     // const statusData = {recommendation_id: recommendation_id,
     //                     meta_key: 'service_declined_at'}
     // const insertedStatus = await commonFunction.insertQuery(insertStatusQuery, statusData);
-    const user = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const user = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                             u.platform as platform, 
                                             u2.name as consumer_name,
                                             u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
@@ -1590,7 +1590,7 @@ module.exports = {
     const updateData = [status, new Date(), recommendation_id];
     const activeRecommendations = await commonFunction.updateQuery(query, updateData);
 
-    const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                         u.platform as platform,
                                         u2.name as consumer_name,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
@@ -1657,7 +1657,7 @@ module.exports = {
     const updateData = [status, new Date(), remarks, recommendation_id];
     const activeRecommendations = await commonFunction.updateQuery(query, updateData);
 
-    const users = await getQueryResults(`SELECT COALESCE(u.registration_token, (SELECT fcm_token FROM ${tableConfig.USER_DEVICES} WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1)) as recommender_token, 
+    const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                         u.platform as platform,
                                         u2.name as consumer_name,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
