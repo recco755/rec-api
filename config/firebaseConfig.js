@@ -1,11 +1,11 @@
 
 var admin = require("firebase-admin");
 
-var serviceAccount = require("./recommando-1619442022598-firebase-adminsdk-hm8gd-73fb2903a8.json");
+var serviceAccount = require("./recco-b66a5-firebase-adminsdk-fbsvc-ec6b1bc4bc.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://recommando-1619442022598-default-rtdb.firebaseio.com"
+  databaseURL: "https://recco-b66a5-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
 
 module.exports.admin = admin
