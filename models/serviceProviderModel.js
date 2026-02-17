@@ -26,6 +26,7 @@ module.exports = {
       business_license,
       address,
       commission_guideline,
+      repeated_customer_commission,
       is_service_provider = 1,
     } = req.body;
 
@@ -74,6 +75,7 @@ module.exports = {
         updated_at: date,
         userId: user_id,
         commission_guideline,
+        repeated_customer_commission,
       };
 
       const updateQueryData = buildUpdateQuery(fieldsToUpdate);
@@ -115,6 +117,7 @@ module.exports = {
         created_at: new Date(),
         updated_at: new Date(),
         commission_guideline,
+        repeated_customer_commission,
       };
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
@@ -1094,6 +1097,7 @@ module.exports = {
       shop_license,
       is_service_provider = "1",
       commission_guideline,
+      repeated_customer_commission,
     } = req.body;
     const deferred = q.defer();
     const createData = {
@@ -1106,6 +1110,7 @@ module.exports = {
       business_type: business_type,
       shop_license: shop_license,
       commission_guideline: commission_guideline,
+      repeated_customer_commission: repeated_customer_commission,
       created_at: new Date(),
       updated_at: new Date(),
     };
