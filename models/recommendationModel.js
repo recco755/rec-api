@@ -7,12 +7,13 @@ const mailNotification = require("../common/mailNotification");
 const {getQueryResults} = require("../models/commonfunction");
 const pushNotification = require("../common/sendPushNotification");
 
-/** Build full URL for business_icon so rectangle images load in recommendation/active/history cards. */
+/** Build full URL for business_icon so rectangle images load (same as viewService / profile page). */
 function toFullBusinessIconUrl(req, business_icon) {
   if (!business_icon || typeof business_icon !== "string") return "";
   if (business_icon.startsWith("http")) return business_icon;
   const sliced = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
-  return `${req.protocol}://${req.get("host") || req.host || "localhost:8888"}${sliced}`;
+  const host = req.hostname || (req.get && req.get("host") ? req.get("host").split(":")[0] : null) || req.host || "localhost";
+  return `${req.protocol}://${host}:8888${sliced}`;
 }
 
 module.exports = {
@@ -376,11 +377,7 @@ module.exports = {
       WHERE consumer_id = ${user_id} AND service_id = ${service.id} AND service_rendered_at IS NOT NULL`;
     const revisitRows = await commonFunction.getQueryResults(revisitQuery);
     const revisit_count = revisitRows && revisitRows[0] ? parseInt(revisitRows[0].revisit_count, 10) : 0;
-    let business_icon = service.business_icon || '';
-    if (business_icon && typeof business_icon === 'string' && !business_icon.startsWith('http')) {
-      const sliced = business_icon.slice(business_icon.lastIndexOf('/'), business_icon.length);
-      business_icon = `${req.protocol}://${req.get('host') || req.host || 'localhost:8888'}${sliced}`;
-    }
+    const business_icon = toFullBusinessIconUrl(req, service.business_icon);
     deferred.resolve({
       status: 1,
       data: { ...service, business_icon, revisit_count },

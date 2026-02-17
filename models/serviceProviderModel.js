@@ -10,12 +10,13 @@ const axios = require("axios");
 const pushNotification = require("../common/sendPushNotification");
 const {c} = require("locutus");
 
-/** Build full URL for business_icon so rectangle images load in recommendation/active/history cards. */
+/** Build full URL for business_icon so rectangle images load (same as viewService / profile page). */
 function toFullBusinessIconUrl(req, business_icon) {
   if (!business_icon || typeof business_icon !== "string") return "";
   if (business_icon.startsWith("http")) return business_icon;
   const sliced = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
-  return `${req.protocol}://${req.get("host") || req.host || "localhost:8888"}${sliced}`;
+  const host = req.hostname || (req.get && req.get("host") ? req.get("host").split(":")[0] : null) || req.host || "localhost";
+  return `${req.protocol}://${host}:8888${sliced}`;
 }
 
 module.exports = {
