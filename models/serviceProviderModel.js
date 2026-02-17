@@ -10,6 +10,14 @@ const axios = require("axios");
 const pushNotification = require("../common/sendPushNotification");
 const {c} = require("locutus");
 
+/** Build full URL for business_icon so rectangle images load in recommendation/active/history cards. */
+function toFullBusinessIconUrl(req, business_icon) {
+  if (!business_icon || typeof business_icon !== "string") return "";
+  if (business_icon.startsWith("http")) return business_icon;
+  const sliced = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
+  return `${req.protocol}://${req.get("host") || req.host || "localhost:8888"}${sliced}`;
+}
+
 module.exports = {
   createOrEditService: async (req) => {
     const deferred = q.defer();
@@ -164,6 +172,7 @@ module.exports = {
     const deferred = q.defer();
     const getServiceQuery = `
     SELECT r.*, 
+           s.business_icon,
            u2.profile_url as service_provider_profile, 
            u2.name as recommended, 
            u.profile_url as recommended_by_profile, 
@@ -171,6 +180,7 @@ module.exports = {
            u1.profile_url as recommended_to_profile, 
            u1.name as recommended_to 
     FROM ${tableConfig.RECOMMENDATIONS} as r
+    LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
     LEFT JOIN ${tableConfig.USER} as u ON u.id = r.recommender_id
     LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
     LEFT JOIN ${tableConfig.USER} as u2 ON u2.id = r.service_provider_id
@@ -179,9 +189,13 @@ module.exports = {
   `;
     //  AND r.recommended_at >= date_sub(now(), INTERVAL 48 hour)
     const service = await commonFunction.getQueryResults(getServiceQuery);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
     return deferred.promise;
   },
@@ -206,10 +220,14 @@ module.exports = {
         WHERE r.id = ${recommendation_id}`;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
 
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
     // console.log(service);
     return deferred.promise;
@@ -456,10 +474,14 @@ module.exports = {
                         WHERE r.id = ${recommendation_id}`;
 
     const activeRecommendations = await getQueryResults(query);
+    const data = (activeRecommendations || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
 
     deferred.resolve({
       status: 1,
-      data: activeRecommendations,
+      data,
     });
 
     return deferred.promise;

@@ -7,6 +7,14 @@ const mailNotification = require("../common/mailNotification");
 const {getQueryResults} = require("../models/commonfunction");
 const pushNotification = require("../common/sendPushNotification");
 
+/** Build full URL for business_icon so rectangle images load in recommendation/active/history cards. */
+function toFullBusinessIconUrl(req, business_icon) {
+  if (!business_icon || typeof business_icon !== "string") return "";
+  if (business_icon.startsWith("http")) return business_icon;
+  const sliced = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
+  return `${req.protocol}://${req.get("host") || req.host || "localhost:8888"}${sliced}`;
+}
+
 module.exports = {
   createRecommendation: async (req) => {
     console.log("create recommendation..........");
@@ -385,6 +393,7 @@ module.exports = {
     const deferred = q.defer();
     const getServiceQuery = `
     SELECT r.*, 
+           s.business_icon,
            u1.profile_url as recommended_to_profile, u1.name as recommended_to, 
            u2.profile_url as service_provider_profile, u2.name as recommended, 
            u.profile_url as recommender_profile, u.name as recommender 
@@ -398,10 +407,14 @@ module.exports = {
     ORDER BY r.id DESC;
   `;
     const service = await commonFunction.getQueryResults(getServiceQuery);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
 
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
 
     return deferred.promise;
@@ -412,6 +425,7 @@ module.exports = {
 
     const getServiceQuery = `
       SELECT r.*, 
+             s.business_icon,
              u1.profile_url AS recommended_to_profile, 
              u1.name AS recommended_to, 
              u2.profile_url AS service_provider_profile, 
@@ -430,10 +444,14 @@ module.exports = {
 
     try {
       const service = await commonFunction.getQueryResults(getServiceQuery);
+      const data = (service || []).map((row) => ({
+        ...row,
+        business_icon: toFullBusinessIconUrl(req, row.business_icon),
+      }));
 
       return {
         status: 1,
-        data: service,
+        data,
       };
     } catch (error) {
       console.error("Error fetching recommendation history:", error);
@@ -467,10 +485,13 @@ module.exports = {
 `;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    // console.log(service);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
     return deferred.promise;
   },
@@ -478,7 +499,8 @@ module.exports = {
   listRecommendations: async (req) => {
     const {user_id, status = "deleted"} = req.body;
     const deferred = q.defer();
-    const getServiceQuery = `SELECT r.*, u1.profile_url as recomended_to_profile,
+    const getServiceQuery = `SELECT r.*, s.business_icon,
+                                 u1.profile_url as recomended_to_profile,
                                  u1.name as recommended_to, u2.profile_url as service_provider_profile,
                                  u2.name as recommended, u.profile_url as recommender_profile, u.name as recommender 
                                  FROM ${tableConfig.RECOMMENDATIONS} as r
@@ -490,10 +512,14 @@ module.exports = {
                                  order by id desc`;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
 
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
 
     return deferred.promise;
@@ -521,10 +547,14 @@ module.exports = {
                                  WHERE r.id = ${recommendation_id}`;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
+    const data = (service || []).map((row) => ({
+      ...row,
+      business_icon: toFullBusinessIconUrl(req, row.business_icon),
+    }));
 
     deferred.resolve({
       status: 1,
-      data: service,
+      data,
     });
     return deferred.promise;
   },
