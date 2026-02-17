@@ -133,4 +133,10 @@ module.exports = {
       res.json(results);
     })
   },
+
+  serviceDetailsByOwnerEmail: async (req, res) => {
+    recommendationModel.serviceDetailsByOwnerEmail(req).then(async (results) => {
+      res.json(results);
+    });
+  },
 }

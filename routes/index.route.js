@@ -257,6 +257,10 @@ module.exports = (app) => {
     "/api/v1/recommendations/delete_recommendation",
     recommendationController.deleteRecommendation
   );
+  app.post(
+    "/api/v1/recommendations/service_details_by_owner_email",
+    recommendationController.serviceDetailsByOwnerEmail
+  );
 
   /* request withdraw */
 

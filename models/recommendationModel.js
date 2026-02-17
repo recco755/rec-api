@@ -338,6 +338,48 @@ module.exports = {
     return deferred.promise;
   },
 
+  /** For user flow: get service details by owner email (e.g. from QR scan). Returns service + revisit_count. */
+  serviceDetailsByOwnerEmail: async (req) => {
+    const { user_id, owner_email } = req.body;
+    const deferred = q.defer();
+    if (!owner_email || !user_id) {
+      deferred.resolve({ status: 0, message: 'user_id and owner_email required' });
+      return deferred.promise;
+    }
+    const escapedEmail = sql.escape((owner_email || '').toString().trim());
+    const ownerQuery = `SELECT id FROM ${tableConfig.USER} WHERE email = ${escapedEmail} AND is_service_provider = 1 AND status = 1 LIMIT 1`;
+    const ownerRows = await commonFunction.getQueryResults(ownerQuery);
+    if (!ownerRows || ownerRows.length === 0) {
+      deferred.resolve({ status: 0, message: 'Owner not found' });
+      return deferred.promise;
+    }
+    const ownerUserId = ownerRows[0].id;
+    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile
+      FROM ${tableConfig.SERVICES} s
+      INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
+      WHERE s.userId = ${ownerUserId} LIMIT 1`;
+    const serviceRows = await commonFunction.getQueryResults(serviceQuery);
+    if (!serviceRows || serviceRows.length === 0) {
+      deferred.resolve({ status: 0, message: 'Service not found' });
+      return deferred.promise;
+    }
+    const service = serviceRows[0];
+    const revisitQuery = `SELECT COUNT(*) as revisit_count FROM ${tableConfig.RECOMMENDATIONS}
+      WHERE consumer_id = ${user_id} AND service_id = ${service.id} AND service_rendered_at IS NOT NULL`;
+    const revisitRows = await commonFunction.getQueryResults(revisitQuery);
+    const revisit_count = revisitRows && revisitRows[0] ? parseInt(revisitRows[0].revisit_count, 10) : 0;
+    let business_icon = service.business_icon || '';
+    if (business_icon && typeof business_icon === 'string' && !business_icon.startsWith('http')) {
+      const sliced = business_icon.slice(business_icon.lastIndexOf('/'), business_icon.length);
+      business_icon = `${req.protocol}://${req.get('host') || req.host || 'localhost:8888'}${sliced}`;
+    }
+    deferred.resolve({
+      status: 1,
+      data: { ...service, business_icon, revisit_count },
+    });
+    return deferred.promise;
+  },
+
   listRecommended: async (req) => {
     const {user_id, status = "deleted"} = req.body;
     const deferred = q.defer();
