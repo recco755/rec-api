@@ -369,11 +369,18 @@ module.exports = {
     const revisitRows = await commonFunction.getQueryResults(revisitQuery);
     const revisit_count = revisitRows && revisitRows[0] ? parseInt(revisitRows[0].revisit_count, 10) : 0;
     let business_icon = service.business_icon || '';
-    // Build full URL when DB has a relative path (so client can load the owner's service image)
-    if (business_icon && typeof business_icon === 'string' && !business_icon.startsWith('http')) {
-      const path = business_icon.startsWith('/') ? business_icon : `/${business_icon}`;
+    if (business_icon && typeof business_icon === 'string') {
       const host = req.get('host') || req.host || 'localhost:8888';
-      business_icon = `${req.protocol}://${host}${path}`;
+      const base = `${req.protocol}://${host}`;
+      if (business_icon.startsWith('http')) {
+        // Normalize: use current request host so image loads from same server (DB may have old/different host)
+        const filename = business_icon.includes('/') ? business_icon.slice(business_icon.lastIndexOf('/')) : '/' + business_icon;
+        business_icon = base + filename;
+      } else {
+        // Relative path or filename: build full URL (static files served at root from public/businessIcons)
+        const pathPart = business_icon.startsWith('/') ? business_icon : '/' + business_icon;
+        business_icon = base + pathPart;
+      }
     }
     deferred.resolve({
       status: 1,
