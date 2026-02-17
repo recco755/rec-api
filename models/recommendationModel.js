@@ -369,9 +369,11 @@ module.exports = {
     const revisitRows = await commonFunction.getQueryResults(revisitQuery);
     const revisit_count = revisitRows && revisitRows[0] ? parseInt(revisitRows[0].revisit_count, 10) : 0;
     let business_icon = service.business_icon || '';
+    // Build full URL when DB has a relative path (so client can load the owner's service image)
     if (business_icon && typeof business_icon === 'string' && !business_icon.startsWith('http')) {
-      const sliced = business_icon.slice(business_icon.lastIndexOf('/'), business_icon.length);
-      business_icon = `${req.protocol}://${req.get('host') || req.host || 'localhost:8888'}${sliced}`;
+      const path = business_icon.startsWith('/') ? business_icon : `/${business_icon}`;
+      const host = req.get('host') || req.host || 'localhost:8888';
+      business_icon = `${req.protocol}://${host}${path}`;
     }
     deferred.resolve({
       status: 1,
