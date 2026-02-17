@@ -414,7 +414,8 @@ module.exports = {
         IFNULL(u1.email, '') AS recommended_to_email, 
         u2.profile_url AS recommended_by_profile, u2.name AS recommended_by, 
         IFNULL(r.rating, 0) AS user_rating,
-        IFNULL(s.commission_guideline, null) AS commission_guideline 
+        IFNULL(s.commission_guideline, null) AS commission_guideline,
+        IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission
     FROM recommendations AS r 
     LEFT JOIN services AS s ON s.id = r.service_id 
     LEFT JOIN user AS u1 ON u1.id = r.consumer_id 
@@ -467,7 +468,8 @@ module.exports = {
                                         u2.profile_url as recommender_by_profile, u2.name as recommender_by,
                                         u3.profile_url as recommended_profile, u3.name as recommended, 
                                         IFNULL(r.rating, 0) as user_rating,
-                                        IFNULL(s.commission_guideline, null) AS commission_guideline 
+                                        IFNULL(s.commission_guideline, null) AS commission_guideline,
+                                        IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission
                                  FROM ${tableConfig.RECOMMENDATIONS} as r
                                  LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
                                  LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
