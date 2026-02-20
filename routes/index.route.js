@@ -182,6 +182,10 @@ module.exports = (app) => {
 
   // User or Recommendations
   app.post(
+    "/api/v1/recommendations/create_repeated_customer_request",
+    recommendationController.createRepeatedCustomerRequest
+  );
+  app.post(
     "/api/v1/recommendations/create_recommendation",
     recommendationController.createRecommendation
   );

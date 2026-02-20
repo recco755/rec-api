@@ -5,6 +5,12 @@ var recommendationModel = require("../models/recommendationModel");
 
 module.exports = {
 
+  createRepeatedCustomerRequest: async (req, res) => {
+    recommendationModel.createRepeatedCustomerRequest(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   createRecommendation: async (req, res) => {
 
     console.log("create recommendation controller....")
