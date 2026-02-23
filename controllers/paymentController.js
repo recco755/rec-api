@@ -69,6 +69,11 @@ module.exports = {
   },
 };
 
+/** Type-safe: run wallet/commission update when transaction not yet applied (0, "0", or null). */
+function isTransactionNotYetUpdated(val) {
+  return val == null || val === 0 || val === "0";
+}
+
 async function updateCustomer(event, wb = false) {
   console.log("update customer ..................................", wb ? "From Webhook" : "NOT From Webhook");
   console.log(event);
@@ -100,7 +105,7 @@ async function updateCustomer(event, wb = false) {
         if (
           customer[0].payment_for === "1" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "1"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           console.log(customer, "customer .............................");
 
@@ -220,7 +225,7 @@ async function updateCustomer(event, wb = false) {
         if (
           customer[0].payment_for === "0" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount = Number(customer[0].amount) / 100;
 
@@ -237,7 +242,7 @@ async function updateCustomer(event, wb = false) {
         if (
           customer[0].payment_for === "2" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount_paid = Number(customer[0].amount) / 100;
 

@@ -52,6 +52,7 @@ module.exports = {
         amount: amount,
         payment_intent_id: paymentIntent ? paymentIntent.id : null,
         status: "created",
+        transaction_updated: 0,
       };
 
       const createCustomer = await commonFunction.insertQuery(customerQuery, insertData);
@@ -163,6 +164,10 @@ module.exports = {
     return deferred.promise;
   },
 };
+/** Type-safe check: DB may return transaction_updated as number 0, string "0", or null. */
+function isTransactionNotYetUpdated(val) {
+  return val == null || val === 0 || val === "0";
+}
 async function updateCustomer(event) {
   console.log("update customer ..................................");
   console.log(event);
@@ -194,7 +199,7 @@ async function updateCustomer(event) {
         if (
           customer[0].payment_for === "1" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           console.log(customer, "customer .............................");
 
@@ -313,7 +318,7 @@ async function updateCustomer(event) {
         if (
           customer[0].payment_for === "0" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount = Number(customer[0].amount) / 100;
 
@@ -350,7 +355,7 @@ async function updateCustomer(event) {
         if (
           customer[0].payment_for === "2" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount_paid = Number(customer[0].amount) / 100;
 
@@ -470,7 +475,7 @@ async function updateCustomerForPaymentStatus(event) {
         if (
           customer[0].payment_for === "1" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           console.log(customer, "customer .............................");
 
@@ -589,7 +594,7 @@ async function updateCustomerForPaymentStatus(event) {
         if (
           customer[0].payment_for === "0" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount = Number(customer[0].amount) / 100;
 
@@ -626,7 +631,7 @@ async function updateCustomerForPaymentStatus(event) {
         if (
           customer[0].payment_for === "2" &&
           customer[0].status === "succeeded" &&
-          customer[0].transaction_updated === "0"
+          isTransactionNotYetUpdated(customer[0].transaction_updated)
         ) {
           const amount_paid = Number(customer[0].amount) / 100;
 
