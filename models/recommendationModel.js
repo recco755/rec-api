@@ -347,7 +347,7 @@ module.exports = {
     return deferred.promise;
   },
 
-  /** User (revisiting customer) requests repeated customer income. Creates a recommendation that appears in owner's active tab with Pay (repeated customer commission). */
+  /** User (revisiting customer) requests repeated customer income. Creates a recommendation that appears in owner's active tab with Pay (repeated customer commission). Min commission 0.10. */
   createRepeatedCustomerRequest: async (req) => {
     const { user_id, service_provider_id, service_id, expected_commission } = req.body;
     const deferred = q.defer();
@@ -355,6 +355,13 @@ module.exports = {
       deferred.resolve({ status: 0, message: 'user_id, service_provider_id and service_id required' });
       return deferred.promise;
     }
+    const minRevisitCommission = 0.10;
+    const parsed = expected_commission != null && String(expected_commission).trim() !== ''
+      ? parseFloat(String(expected_commission).replace(/[^0-9.-]/g, ''))
+      : NaN;
+    const commission = (!Number.isFinite(parsed) || parsed < minRevisitCommission)
+      ? String(minRevisitCommission)
+      : String(expected_commission).trim();
     const now = new Date();
     const insertRecommendationQuery = `INSERT INTO ${tableConfig.RECOMMENDATIONS} SET ?`;
     const insertData = {
@@ -362,7 +369,7 @@ module.exports = {
       service_id,
       recommender_id: user_id,
       consumer_id: user_id,
-      expected_commission: expected_commission || null,
+      expected_commission: commission,
       status: 'commission_payment_accepted',
       recommended_at: now,
       accepted_at: now,
