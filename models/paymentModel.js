@@ -18,6 +18,16 @@ module.exports = {
     const deferred = q.defer();
 
     try {
+      // Card/Stripe has a minimum amount (e.g. 50 cents). For commission under that, ask user to pay with Wallet.
+      const amountCents = Number(amount);
+      if (payment_for === "1" && !Number.isNaN(amountCents) && amountCents > 0 && amountCents < 50) {
+        deferred.resolve({
+          status: 0,
+          message: "Card payment requires a minimum of $0.50. For $0.10 please use Wallet.",
+        });
+        return deferred.promise;
+      }
+
       // Create or retrieve the Stripe Customer object associated with your user.
       const customer = await stripe.customers.create(); // This example just creates a new Customer every time
       // Create an ephemeral key for the Customer; this allows the app to display saved payment methods and save new ones
