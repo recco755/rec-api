@@ -18,15 +18,8 @@ module.exports = {
     const deferred = q.defer();
 
     try {
-      // Card/Stripe has a minimum amount (e.g. 50 cents). For commission under that, ask user to pay with Wallet.
       const amountCents = Number(amount);
-      if (payment_for === "1" && !Number.isNaN(amountCents) && amountCents > 0 && amountCents < 50) {
-        deferred.resolve({
-          status: 0,
-          message: "Card payment requires a minimum of $0.50. For $0.10 please use Wallet.",
-        });
-        return deferred.promise;
-      }
+      const isCommissionUnderStripeMin = payment_for === "1" && !Number.isNaN(amountCents) && amountCents > 0 && amountCents < 50;
 
       // Create or retrieve the Stripe Customer object associated with your user.
       const customer = await stripe.customers.create(); // This example just creates a new Customer every time
@@ -35,19 +28,20 @@ module.exports = {
         {customer: customer.id},
         {apiVersion: "2025-01-27.acacia"}
       );
-      //   console.log("Body", req.body);
-      //   console.log("ephemeralKey", ephemeralKey);
 
-      // Create a PaymentIntent with the payment amount, currency, and customer
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: payment_for === "0" ? (Number(amount) + Number(amount) * 0.04).toString() : amount,
-        currency: "SGD",
-        customer: customer.id,
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
-      //   console.log("paymentIntent", paymentIntent);
+      let paymentIntent = null;
+      if (!isCommissionUnderStripeMin) {
+        // Card/Stripe has a minimum amount (e.g. 50 cents). Only create PaymentIntent when amount is allowed.
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: payment_for === "0" ? (Number(amount) + Number(amount) * 0.04).toString() : amount,
+          currency: "SGD",
+          customer: customer.id,
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        });
+      }
+
       // Insert customer into the database
       const customerQuery = `INSERT INTO ${tableConfig.CUSTOMER} SET ?`;
       const insertData = {
@@ -56,7 +50,7 @@ module.exports = {
         payment_for: payment_for,
         recommendation_id: recommendation_id,
         amount: amount,
-        payment_intent_id: paymentIntent.id,
+        payment_intent_id: paymentIntent ? paymentIntent.id : null,
         status: "created",
       };
 
@@ -83,16 +77,14 @@ module.exports = {
       // Execute the update query
       await commonFunction.insertQuery(userUpdateQuery, updateData);
 
-      // Prepare the response data
+      // For amounts under Stripe minimum we only return customer (Wallet can still pay); no PaymentIntent
       const data = {
         publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-        paymentIntent: paymentIntent.client_secret,
+        paymentIntent: paymentIntent ? paymentIntent.client_secret : null,
         customer: customer.id,
         ephemeralKey: ephemeralKey.secret,
-        paymentIntentId: paymentIntent.id,
+        paymentIntentId: paymentIntent ? paymentIntent.id : null,
       };
-
-      //   console.log(data);
 
       // Resolve the promise with the response data
       deferred.resolve({
