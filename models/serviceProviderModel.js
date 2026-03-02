@@ -37,6 +37,9 @@ module.exports = {
       commission_guideline,
       repeated_customer_commission,
       is_service_provider = 1,
+      carousel_image_1,
+      carousel_image_2,
+      carousel_image_3,
     } = req.body;
 
     console.log(req.body);
@@ -85,6 +88,9 @@ module.exports = {
         userId: user_id,
         commission_guideline,
         repeated_customer_commission,
+        carousel_image_1,
+        carousel_image_2,
+        carousel_image_3,
       };
 
       const updateQueryData = buildUpdateQuery(fieldsToUpdate);
@@ -127,6 +133,9 @@ module.exports = {
         updated_at: new Date(),
         commission_guideline,
         repeated_customer_commission,
+        carousel_image_1,
+        carousel_image_2,
+        carousel_image_3,
       };
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
@@ -157,13 +166,19 @@ module.exports = {
     const getServiceQuery = `SELECT * 
                                  FROM ${tableConfig.SERVICES} WHERE userId = ${user_id}`;
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    const {business_icon} = service[0];
+    const {business_icon, carousel_image_1, carousel_image_2, carousel_image_3} = service[0];
     const business_sliced_icon = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
     const business_icon_server = `${req.protocol}://${req.host}:8888${business_sliced_icon}`;
     console.log(business_icon_server);
     deferred.resolve({
       status: 1,
-      data: [{...service[0], business_icon: business_icon_server}],
+      data: [{
+        ...service[0], 
+        business_icon: business_icon_server,
+        carousel_image_1: carousel_image_1 || null,
+        carousel_image_2: carousel_image_2 || null,
+        carousel_image_3: carousel_image_3 || null,
+      }],
     });
     return deferred.promise;
   },
