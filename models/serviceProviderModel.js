@@ -15,8 +15,8 @@ function toFullBusinessIconUrl(req, business_icon) {
   if (!business_icon || typeof business_icon !== "string") return "";
   if (business_icon.startsWith("http")) return business_icon;
   const sliced = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
-  const host = req.hostname || (req.get && req.get("host") ? req.get("host").split(":")[0] : null) || req.host || "localhost";
-  return `${req.protocol}://${host}:8888${sliced}`;
+  const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+  return `${baseUrl}${sliced}`;
 }
 
 module.exports = {
@@ -166,18 +166,38 @@ module.exports = {
     const getServiceQuery = `SELECT * 
                                  FROM ${tableConfig.SERVICES} WHERE userId = ${user_id}`;
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    const {business_icon, carousel_image_1, carousel_image_2, carousel_image_3} = service[0];
-    const business_sliced_icon = business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length);
-    const business_icon_server = `${req.protocol}://${req.host}:8888${business_sliced_icon}`;
-    console.log(business_icon_server);
+    
+    if (!service || service.length === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "Service not found",
+      });
+      return deferred.promise;
+    }
+    
+    const {business_icon} = service[0];
+    const carousel_image_1 = service[0].carousel_image_1 || null;
+    const carousel_image_2 = service[0].carousel_image_2 || null;
+    const carousel_image_3 = service[0].carousel_image_3 || null;
+    
+    // Use BASE_URL from environment variable for consistency
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const business_sliced_icon = business_icon ? business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length) : "";
+    const business_icon_server = business_icon ? `${baseUrl}${business_sliced_icon}` : "";
+    
+    console.log("viewService - business_icon_server:", business_icon_server);
+    console.log("viewService - carousel_image_1:", carousel_image_1);
+    console.log("viewService - carousel_image_2:", carousel_image_2);
+    console.log("viewService - carousel_image_3:", carousel_image_3);
+    
     deferred.resolve({
       status: 1,
       data: [{
         ...service[0], 
         business_icon: business_icon_server,
-        carousel_image_1: carousel_image_1 || null,
-        carousel_image_2: carousel_image_2 || null,
-        carousel_image_3: carousel_image_3 || null,
+        carousel_image_1: carousel_image_1,
+        carousel_image_2: carousel_image_2,
+        carousel_image_3: carousel_image_3,
       }],
     });
     return deferred.promise;
@@ -1086,38 +1106,45 @@ module.exports = {
   uploadBusinessIcon: async (req) => {
     const {service_provider_id} = req.body;
     const deferred = q.defer();
-    const profile_url = `http://ec2-54-251-142-179.ap-southeast-1.compute.amazonaws.com:8888/${req.file.filename}`;
-    if (!req.file.filename) {
+    
+    if (!req.file || !req.file.filename) {
       deferred.resolve({
         status: 0,
         message: "Something went wrong",
       });
-    } else {
-      const date = new Date();
+      return deferred.promise;
+    }
+    
+    // Use BASE_URL from environment variable (set in .env file)
+    // This makes it easy to update when server changes - just update .env
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const profile_url = `${baseUrl}/${req.file.filename}`;
+    console.log("uploadBusinessIcon - Generated URL:", profile_url);
+    
+    const date = new Date();
 
-      const updateBusinessIconQuery = `UPDATE ${tableConfig.SERVICES} SET business_icon = ?, updated_at = ? WHERE userId = ?`;
-      const updateData = [profile_url, date, service_provider_id];
-      try {
-        const updated = await commonFunction.updateQuery(updateBusinessIconQuery, updateData);
+    const updateBusinessIconQuery = `UPDATE ${tableConfig.SERVICES} SET business_icon = ?, updated_at = ? WHERE userId = ?`;
+    const updateData = [profile_url, date, service_provider_id];
+    try {
+      const updated = await commonFunction.updateQuery(updateBusinessIconQuery, updateData);
 
-        if (updated.affectedRows > 0) {
-          deferred.resolve({
-            status: 1,
-            icon_url: profile_url,
-            message: "Profile uploaded successfully",
-          });
-        } else {
-          deferred.resolve({
-            status: 0,
-            message: "No records were updated. Please check the user ID or other details.",
-          });
-        }
-      } catch (error) {
+      if (updated.affectedRows > 0) {
+        deferred.resolve({
+          status: 1,
+          icon_url: profile_url,
+          message: "Profile uploaded successfully",
+        });
+      } else {
         deferred.resolve({
           status: 0,
-          message: "An error occurred while updating the profile.",
+          message: "No records were updated. Please check the user ID or other details.",
         });
       }
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: "An error occurred while updating the profile.",
+      });
     }
 
     return deferred.promise;
