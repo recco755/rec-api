@@ -40,8 +40,8 @@ module.exports = {
       carousel_image_1,
       carousel_image_2,
       carousel_image_3,
-      email,
-      mobile_number,
+      display_email,
+      display_phone,
       show_email_on_cards,
       show_phone_on_cards,
     } = req.body;
@@ -107,16 +107,16 @@ module.exports = {
       const updated = await commonFunction.updateQuery(query, values);
 
       if (updated.affectedRows > 0) {
-        if ((email !== undefined && email !== null && email !== '') || (mobile_number !== undefined && mobile_number !== null && mobile_number !== '')) {
+        if ((display_email !== undefined && display_email !== null) || (display_phone !== undefined && display_phone !== null) || (show_email_on_cards !== undefined && show_email_on_cards !== null && show_email_on_cards !== '') || (show_phone_on_cards !== undefined && show_phone_on_cards !== null && show_phone_on_cards !== '')) {
           const userUpdates = [];
           const userValues = [];
-          if (email !== undefined && email !== null && email !== '') {
-            userUpdates.push('email = ?');
-            userValues.push(email);
+          if (display_email !== undefined && display_email !== null) {
+            userUpdates.push('display_email = ?');
+            userValues.push(display_email === '' ? null : display_email);
           }
-          if (mobile_number !== undefined && mobile_number !== null && mobile_number !== '') {
-            userUpdates.push('mobile_number = ?');
-            userValues.push(mobile_number);
+          if (display_phone !== undefined && display_phone !== null) {
+            userUpdates.push('display_phone = ?');
+            userValues.push(display_phone === '' ? null : display_phone);
           }
           if (show_email_on_cards !== undefined && show_email_on_cards !== null && show_email_on_cards !== '') {
             userUpdates.push('show_email_on_cards = ?');
@@ -171,16 +171,16 @@ module.exports = {
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
       if (inserted.affectedRows > 0) {
-        // Update user to reflect service provider status and optionally email/mobile
+        // Update user to reflect service provider status and optionally display contact / toggles
         let userUpdateQuery = `UPDATE ${tableConfig.USER} SET is_service_provider = ?`;
         const userUpdateValues = [is_service_provider];
-        if (email !== undefined && email !== null && email !== '') {
-          userUpdateQuery += ', email = ?';
-          userUpdateValues.push(email);
+        if (display_email !== undefined && display_email !== null) {
+          userUpdateQuery += ', display_email = ?';
+          userUpdateValues.push(display_email === '' ? null : display_email);
         }
-        if (mobile_number !== undefined && mobile_number !== null && mobile_number !== '') {
-          userUpdateQuery += ', mobile_number = ?';
-          userUpdateValues.push(mobile_number);
+        if (display_phone !== undefined && display_phone !== null) {
+          userUpdateQuery += ', display_phone = ?';
+          userUpdateValues.push(display_phone === '' ? null : display_phone);
         }
         if (show_email_on_cards !== undefined && show_email_on_cards !== null && show_email_on_cards !== '') {
           userUpdateQuery += ', show_email_on_cards = ?';
@@ -213,7 +213,9 @@ module.exports = {
     const {user_id} = req.body;
     const deferred = q.defer();
 
-    const getServiceQuery = `SELECT s.*, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number,
+    const getServiceQuery = `SELECT s.*,
+        COALESCE(u.display_email, u.email) as service_provider_email,
+        COALESCE(u.display_phone, u.mobile_number) as service_provider_mobile_number,
         IFNULL(u.show_email_on_cards, 1) as show_email_on_cards,
         IFNULL(u.show_phone_on_cards, 1) as show_phone_on_cards
                                  FROM ${tableConfig.SERVICES} s
@@ -298,8 +300,8 @@ module.exports = {
     const deferred = q.defer();
     const getServiceQuery = `SELECT r.*, s.*,
             u2.name as recommended, u2.profile_url as recommended_profile,
-            IFNULL(u2.email, '') as service_provider_email,
-            IFNULL(u2.mobile_number, '') as service_provider_mobile,
+            IFNULL(COALESCE(u2.display_email, u2.email), '') as service_provider_email,
+            IFNULL(COALESCE(u2.display_phone, u2.mobile_number), '') as service_provider_mobile,
             IFNULL(u2.show_email_on_cards, 1) as show_email_on_cards,
             IFNULL(u2.show_phone_on_cards, 1) as show_phone_on_cards,
             u.name as recommended_by, u.profile_url as recommended_by_profile,
@@ -1251,8 +1253,11 @@ module.exports = {
 
     const updateQuery = `UPDATE ${tableConfig.USER} SET is_service_provider = ? WHERE id = ?`;
     const updateData = [is_service_provider, user_id];
+    await commonFunction.updateQuery(updateQuery, updateData);
 
-    const updated = await commonFunction.updateQuery(updateQuery, updateData);
+    // Set display contact (for cards) from Required form - separate from login email/phone
+    const displayUpdateQuery = `UPDATE ${tableConfig.USER} SET display_email = ?, display_phone = ? WHERE id = ?`;
+    await commonFunction.updateQuery(displayUpdateQuery, [email || null, mobile_number || null, user_id]);
 
     if (created.affectedRows > 0) {
       deferred.resolve({

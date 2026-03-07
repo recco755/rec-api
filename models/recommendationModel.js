@@ -407,7 +407,9 @@ module.exports = {
       return deferred.promise;
     }
     const ownerUserId = ownerRows[0].id;
-    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number,
+    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile,
+      COALESCE(u.display_email, u.email) as service_provider_email,
+      COALESCE(u.display_phone, u.mobile_number) as service_provider_mobile_number,
       IFNULL(u.show_email_on_cards, 1) as show_email_on_cards, IFNULL(u.show_phone_on_cards, 1) as show_phone_on_cards
       FROM ${tableConfig.SERVICES} s
       INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
@@ -519,8 +521,8 @@ module.exports = {
     SELECT 
         r.*, s.*, u3.profile_url AS service_provider_profile, 
         u3.name AS service_provider_name, 
-        IFNULL(u3.email, '') AS service_provider_email,
-        IFNULL(u3.mobile_number, '') AS service_provider_mobile,
+        IFNULL(COALESCE(u3.display_email, u3.email), '') AS service_provider_email,
+        IFNULL(COALESCE(u3.display_phone, u3.mobile_number), '') AS service_provider_mobile,
         IFNULL(u3.show_email_on_cards, 1) AS show_email_on_cards,
         IFNULL(u3.show_phone_on_cards, 1) AS show_phone_on_cards,
         u1.profile_url AS recommended_to_profile, u1.name AS recommended_to, 
@@ -595,8 +597,8 @@ module.exports = {
                                         u1.profile_url as consumer_profile, u1.name as consumer, 
                                         u2.profile_url as recommender_by_profile, u2.name as recommender_by,
                                         u3.profile_url as recommended_profile, u3.name as recommended, 
-                                        IFNULL(u3.email, '') as service_provider_email,
-                                        IFNULL(u3.mobile_number, '') as service_provider_mobile,
+                                        IFNULL(COALESCE(u3.display_email, u3.email), '') as service_provider_email,
+                                        IFNULL(COALESCE(u3.display_phone, u3.mobile_number), '') as service_provider_mobile,
                                         IFNULL(u3.show_email_on_cards, 1) as show_email_on_cards,
                                         IFNULL(u3.show_phone_on_cards, 1) as show_phone_on_cards,
                                         IFNULL(r.rating, 0) as user_rating,
