@@ -510,6 +510,8 @@ module.exports = {
     SELECT 
         r.*, s.*, u3.profile_url AS service_provider_profile, 
         u3.name AS service_provider_name, 
+        IFNULL(u3.email, '') AS service_provider_email,
+        IFNULL(u3.mobile_number, '') AS service_provider_mobile,
         u1.profile_url AS recommended_to_profile, u1.name AS recommended_to, 
         IFNULL(u1.mobile_number, '') AS recommended_to_contact, 
         IFNULL(u1.email, '') AS recommended_to_email, 
