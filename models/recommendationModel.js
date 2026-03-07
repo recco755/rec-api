@@ -576,6 +576,8 @@ module.exports = {
                                         u1.profile_url as consumer_profile, u1.name as consumer, 
                                         u2.profile_url as recommender_by_profile, u2.name as recommender_by,
                                         u3.profile_url as recommended_profile, u3.name as recommended, 
+                                        IFNULL(u3.email, '') as service_provider_email,
+                                        IFNULL(u3.mobile_number, '') as service_provider_mobile,
                                         IFNULL(r.rating, 0) as user_rating,
                                         IFNULL(s.commission_guideline, null) AS commission_guideline,
                                         IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission

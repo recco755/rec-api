@@ -244,6 +244,8 @@ module.exports = {
     const deferred = q.defer();
     const getServiceQuery = `SELECT r.*, s.*,
             u2.name as recommended, u2.profile_url as recommended_profile,
+            IFNULL(u2.email, '') as service_provider_email,
+            IFNULL(u2.mobile_number, '') as service_provider_mobile,
             u.name as recommended_by, u.profile_url as recommended_by_profile,
             u1.name as recommended_to, u1.profile_url as recommended_to_profile,
             IFNULL(u1.mobile_number, '') as recommended_to_contact,
