@@ -163,8 +163,10 @@ module.exports = {
     const {user_id} = req.body;
     const deferred = q.defer();
 
-    const getServiceQuery = `SELECT * 
-                                 FROM ${tableConfig.SERVICES} WHERE userId = ${user_id}`;
+    const getServiceQuery = `SELECT s.*, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number
+                                 FROM ${tableConfig.SERVICES} s
+                                 INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
+                                 WHERE s.userId = ${user_id}`;
     const service = await commonFunction.getQueryResults(getServiceQuery);
     
     if (!service || service.length === 0) {

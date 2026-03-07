@@ -407,7 +407,7 @@ module.exports = {
       return deferred.promise;
     }
     const ownerUserId = ownerRows[0].id;
-    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile
+    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number
       FROM ${tableConfig.SERVICES} s
       INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
       WHERE s.userId = ${ownerUserId} LIMIT 1`;
