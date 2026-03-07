@@ -40,6 +40,10 @@ module.exports = {
       carousel_image_1,
       carousel_image_2,
       carousel_image_3,
+      email,
+      mobile_number,
+      show_email_on_cards,
+      show_phone_on_cards,
     } = req.body;
 
     console.log(req.body);
@@ -103,6 +107,33 @@ module.exports = {
       const updated = await commonFunction.updateQuery(query, values);
 
       if (updated.affectedRows > 0) {
+        if ((email !== undefined && email !== null && email !== '') || (mobile_number !== undefined && mobile_number !== null && mobile_number !== '')) {
+          const userUpdates = [];
+          const userValues = [];
+          if (email !== undefined && email !== null && email !== '') {
+            userUpdates.push('email = ?');
+            userValues.push(email);
+          }
+          if (mobile_number !== undefined && mobile_number !== null && mobile_number !== '') {
+            userUpdates.push('mobile_number = ?');
+            userValues.push(mobile_number);
+          }
+          if (show_email_on_cards !== undefined && show_email_on_cards !== null && show_email_on_cards !== '') {
+            userUpdates.push('show_email_on_cards = ?');
+            userValues.push(Number(show_email_on_cards));
+          }
+          if (show_phone_on_cards !== undefined && show_phone_on_cards !== null && show_phone_on_cards !== '') {
+            userUpdates.push('show_phone_on_cards = ?');
+            userValues.push(Number(show_phone_on_cards));
+          }
+          if (userUpdates.length > 0) {
+            userValues.push(user_id);
+            await commonFunction.updateQuery(
+              `UPDATE ${tableConfig.USER} SET ${userUpdates.join(', ')} WHERE id = ?`,
+              userValues
+            );
+          }
+        }
         deferred.resolve({
           status: 1,
           message: "Service updated successfully",
@@ -140,9 +171,28 @@ module.exports = {
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
       if (inserted.affectedRows > 0) {
-        // Update user to reflect service provider status
-        const query = `UPDATE ${tableConfig.USER} SET is_service_provider = ? WHERE id = ?`;
-        await commonFunction.updateQuery(query, [is_service_provider, user_id]);
+        // Update user to reflect service provider status and optionally email/mobile
+        let userUpdateQuery = `UPDATE ${tableConfig.USER} SET is_service_provider = ?`;
+        const userUpdateValues = [is_service_provider];
+        if (email !== undefined && email !== null && email !== '') {
+          userUpdateQuery += ', email = ?';
+          userUpdateValues.push(email);
+        }
+        if (mobile_number !== undefined && mobile_number !== null && mobile_number !== '') {
+          userUpdateQuery += ', mobile_number = ?';
+          userUpdateValues.push(mobile_number);
+        }
+        if (show_email_on_cards !== undefined && show_email_on_cards !== null && show_email_on_cards !== '') {
+          userUpdateQuery += ', show_email_on_cards = ?';
+          userUpdateValues.push(Number(show_email_on_cards));
+        }
+        if (show_phone_on_cards !== undefined && show_phone_on_cards !== null && show_phone_on_cards !== '') {
+          userUpdateQuery += ', show_phone_on_cards = ?';
+          userUpdateValues.push(Number(show_phone_on_cards));
+        }
+        userUpdateQuery += ' WHERE id = ?';
+        userUpdateValues.push(user_id);
+        await commonFunction.updateQuery(userUpdateQuery, userUpdateValues);
 
         deferred.resolve({
           status: 1,
@@ -163,7 +213,9 @@ module.exports = {
     const {user_id} = req.body;
     const deferred = q.defer();
 
-    const getServiceQuery = `SELECT s.*, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number
+    const getServiceQuery = `SELECT s.*, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number,
+        IFNULL(u.show_email_on_cards, 1) as show_email_on_cards,
+        IFNULL(u.show_phone_on_cards, 1) as show_phone_on_cards
                                  FROM ${tableConfig.SERVICES} s
                                  INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
                                  WHERE s.userId = ${user_id}`;
@@ -177,29 +229,31 @@ module.exports = {
       return deferred.promise;
     }
     
-    const {business_icon} = service[0];
-    const carousel_image_1 = service[0].carousel_image_1 || null;
-    const carousel_image_2 = service[0].carousel_image_2 || null;
-    const carousel_image_3 = service[0].carousel_image_3 || null;
+    const row = service[0];
+    const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+    const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
+    const {business_icon} = row;
+    const carousel_image_1 = row.carousel_image_1 || null;
+    const carousel_image_2 = row.carousel_image_2 || null;
+    const carousel_image_3 = row.carousel_image_3 || null;
     
     // Use BASE_URL from environment variable for consistency
     const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
     const business_sliced_icon = business_icon ? business_icon.slice(business_icon.lastIndexOf("/"), business_icon.length) : "";
     const business_icon_server = business_icon ? `${baseUrl}${business_sliced_icon}` : "";
     
-    console.log("viewService - business_icon_server:", business_icon_server);
-    console.log("viewService - carousel_image_1:", carousel_image_1);
-    console.log("viewService - carousel_image_2:", carousel_image_2);
-    console.log("viewService - carousel_image_3:", carousel_image_3);
-    
     deferred.resolve({
       status: 1,
       data: [{
-        ...service[0], 
+        ...row,
         business_icon: business_icon_server,
         carousel_image_1: carousel_image_1,
         carousel_image_2: carousel_image_2,
         carousel_image_3: carousel_image_3,
+        service_provider_email: showEmail ? (row.service_provider_email || '') : '',
+        service_provider_mobile_number: showPhone ? (row.service_provider_mobile_number || '') : '',
+        show_email_on_cards: row.show_email_on_cards,
+        show_phone_on_cards: row.show_phone_on_cards,
       }],
     });
     return deferred.promise;
@@ -246,6 +300,8 @@ module.exports = {
             u2.name as recommended, u2.profile_url as recommended_profile,
             IFNULL(u2.email, '') as service_provider_email,
             IFNULL(u2.mobile_number, '') as service_provider_mobile,
+            IFNULL(u2.show_email_on_cards, 1) as show_email_on_cards,
+            IFNULL(u2.show_phone_on_cards, 1) as show_phone_on_cards,
             u.name as recommended_by, u.profile_url as recommended_by_profile,
             u1.name as recommended_to, u1.profile_url as recommended_to_profile,
             IFNULL(u1.mobile_number, '') as recommended_to_contact,
@@ -260,10 +316,16 @@ module.exports = {
         WHERE r.id = ${recommendation_id}`;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    const data = (service || []).map((row) => ({
-      ...row,
-      business_icon: toFullBusinessIconUrl(req, row.business_icon),
-    }));
+    const data = (service || []).map((row) => {
+      const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+      const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
+      return {
+        ...row,
+        business_icon: toFullBusinessIconUrl(req, row.business_icon),
+        service_provider_email: showEmail ? (row.service_provider_email || '') : '',
+        service_provider_mobile: showPhone ? (row.service_provider_mobile || '') : '',
+      };
+    });
 
     deferred.resolve({
       status: 1,

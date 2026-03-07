@@ -407,7 +407,8 @@ module.exports = {
       return deferred.promise;
     }
     const ownerUserId = ownerRows[0].id;
-    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number
+    const serviceQuery = `SELECT s.*, u.name as service_provider_name, u.profile_url as service_provider_profile, u.email as service_provider_email, u.mobile_number as service_provider_mobile_number,
+      IFNULL(u.show_email_on_cards, 1) as show_email_on_cards, IFNULL(u.show_phone_on_cards, 1) as show_phone_on_cards
       FROM ${tableConfig.SERVICES} s
       INNER JOIN ${tableConfig.USER} u ON u.id = s.userId
       WHERE s.userId = ${ownerUserId} LIMIT 1`;
@@ -417,6 +418,8 @@ module.exports = {
       return deferred.promise;
     }
     const service = serviceRows[0];
+    const showEmail = service.show_email_on_cards !== 0 && service.show_email_on_cards !== '0';
+    const showPhone = service.show_phone_on_cards !== 0 && service.show_phone_on_cards !== '0';
     const revisitQuery = `SELECT COUNT(*) as revisit_count FROM ${tableConfig.RECOMMENDATIONS}
       WHERE consumer_id = ${user_id} AND service_id = ${service.id} AND service_rendered_at IS NOT NULL`;
     const revisitRows = await commonFunction.getQueryResults(revisitQuery);
@@ -424,7 +427,13 @@ module.exports = {
     const business_icon = toFullBusinessIconUrl(req, service.business_icon);
     deferred.resolve({
       status: 1,
-      data: { ...service, business_icon, revisit_count },
+      data: {
+        ...service,
+        business_icon,
+        revisit_count,
+        service_provider_email: showEmail ? (service.service_provider_email || '') : '',
+        service_provider_mobile_number: showPhone ? (service.service_provider_mobile_number || '') : '',
+      },
     });
     return deferred.promise;
   },
@@ -512,6 +521,8 @@ module.exports = {
         u3.name AS service_provider_name, 
         IFNULL(u3.email, '') AS service_provider_email,
         IFNULL(u3.mobile_number, '') AS service_provider_mobile,
+        IFNULL(u3.show_email_on_cards, 1) AS show_email_on_cards,
+        IFNULL(u3.show_phone_on_cards, 1) AS show_phone_on_cards,
         u1.profile_url AS recommended_to_profile, u1.name AS recommended_to, 
         IFNULL(u1.mobile_number, '') AS recommended_to_contact, 
         IFNULL(u1.email, '') AS recommended_to_email, 
@@ -528,10 +539,16 @@ module.exports = {
 `;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    const data = (service || []).map((row) => ({
-      ...row,
-      business_icon: toFullBusinessIconUrl(req, row.business_icon),
-    }));
+    const data = (service || []).map((row) => {
+      const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+      const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
+      return {
+        ...row,
+        business_icon: toFullBusinessIconUrl(req, row.business_icon),
+        service_provider_email: showEmail ? (row.service_provider_email || '') : '',
+        service_provider_mobile: showPhone ? (row.service_provider_mobile || '') : '',
+      };
+    });
     deferred.resolve({
       status: 1,
       data,
@@ -580,6 +597,8 @@ module.exports = {
                                         u3.profile_url as recommended_profile, u3.name as recommended, 
                                         IFNULL(u3.email, '') as service_provider_email,
                                         IFNULL(u3.mobile_number, '') as service_provider_mobile,
+                                        IFNULL(u3.show_email_on_cards, 1) as show_email_on_cards,
+                                        IFNULL(u3.show_phone_on_cards, 1) as show_phone_on_cards,
                                         IFNULL(r.rating, 0) as user_rating,
                                         IFNULL(s.commission_guideline, null) AS commission_guideline,
                                         IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission
@@ -592,10 +611,16 @@ module.exports = {
                                  WHERE r.id = ${recommendation_id}`;
 
     const service = await commonFunction.getQueryResults(getServiceQuery);
-    const data = (service || []).map((row) => ({
-      ...row,
-      business_icon: toFullBusinessIconUrl(req, row.business_icon),
-    }));
+    const data = (service || []).map((row) => {
+      const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+      const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
+      return {
+        ...row,
+        business_icon: toFullBusinessIconUrl(req, row.business_icon),
+        service_provider_email: showEmail ? (row.service_provider_email || '') : '',
+        service_provider_mobile: showPhone ? (row.service_provider_mobile || '') : '',
+      };
+    });
 
     deferred.resolve({
       status: 1,
