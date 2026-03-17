@@ -7,6 +7,7 @@ const app = express();
 const dotenv = require("dotenv");
 var expressValidator = require("express-validator");
 const path = require('path');
+const fs = require('fs');
 const admin = require('./config/firebaseConfig').admin;
 const cronJobs = require('./cronJobs');
 
@@ -22,6 +23,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public/profiles/')));
 app.use(express.static(path.join(__dirname, 'public/businessIcons/')));
+const boostImagesDir = path.join(__dirname, 'public', 'boostImages');
+if (!fs.existsSync(boostImagesDir)) {
+  fs.mkdirSync(boostImagesDir, { recursive: true });
+}
+app.use('/boostImages', express.static(boostImagesDir));
 
 // app.use('/send_notification', (req, res) => {
 

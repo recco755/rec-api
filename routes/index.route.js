@@ -44,6 +44,18 @@ module.exports = (app) => {
     },
   });
 
+  const boostImageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "public/boostImages");
+    },
+    filename: (req, file, cb) => {
+      const name = file.originalname.split(" ").join("-").toLowerCase();
+      const file_name = name.split(".").slice(0, -1);
+      const ext = MIME_TIYE_MAP[file.mimetype];
+      cb(null, file_name + "-" + Date.now() + "." + ext);
+    },
+  });
+
   // login
   app.post("/api/v1/login", auth.login);
   app.post("/api/v1/logout", auth.logout);
@@ -178,6 +190,19 @@ module.exports = (app) => {
     "/api/v1/service_provider/upload_business_icon",
     multer({ storage: fileStorage }).single("business_icon"),
     serviceProviderController.uploadBusinessIcon
+  );
+  app.post(
+    "/api/v1/service_provider/get_boost",
+    serviceProviderController.getBoostDetails
+  );
+  app.post(
+    "/api/v1/service_provider/save_boost",
+    serviceProviderController.saveBoostDetails
+  );
+  app.post(
+    "/api/v1/service_provider/upload_boost_image",
+    multer({ storage: boostImageStorage }).single("boost_image"),
+    serviceProviderController.uploadBoostImage
   );
 
   // User or Recommendations

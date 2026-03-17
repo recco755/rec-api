@@ -97,6 +97,24 @@ module.exports = {
     })
   },
 
+  getBoostDetails: async (req, res) => {
+    serviceProviderModel.getBoostDetails(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  saveBoostDetails: async (req, res) => {
+    serviceProviderModel.saveBoostDetails(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  uploadBoostImage: async (req, res) => {
+    serviceProviderModel.uploadBoostImage(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   counterApprove: async (req, res) => {
     serviceProviderModel.counterApprove(req).then(async (results) => {
       res.json(results);

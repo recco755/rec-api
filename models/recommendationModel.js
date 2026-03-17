@@ -347,7 +347,7 @@ module.exports = {
     return deferred.promise;
   },
 
-  /** User (revisiting customer) requests repeated customer income. Creates a recommendation that appears in owner's active tab with Pay (repeated customer commission). Min commission 0.10. */
+  /** User (revisiting customer) requests existing customer loyality commission. Creates a recommendation that appears in owner's active tab with Pay (existing customer loyality commission). Min commission 0.10. */
   createRepeatedCustomerRequest: async (req) => {
     const { user_id, service_provider_id, service_id, expected_commission } = req.body;
     const deferred = q.defer();
@@ -381,7 +381,7 @@ module.exports = {
     try {
       const inserted = await commonFunction.insertQuery(insertRecommendationQuery, insertData);
       if (inserted && inserted.affectedRows > 0) {
-        deferred.resolve({ status: 1, message: 'Request sent. The shop owner can pay your repeated customer commission from their active tab.', data: { recommendation_id: inserted.insertId } });
+        deferred.resolve({ status: 1, message: 'Request sent. The shop owner can pay your existing customer loyality commission from their active tab.', data: { recommendation_id: inserted.insertId } });
       } else {
         deferred.resolve({ status: 0, message: 'Something went wrong' });
       }

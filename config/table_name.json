@@ -14,5 +14,6 @@
   "COMMISSIONS": "commissions",
   "CUSTOMER": "customers",
   "CONTACT_DETAIL": "contact_details",
-  "WITHDRAW":"withdraw_request"
+  "WITHDRAW":"withdraw_request",
+  "SERVICE_BOOST": "service_boost"
 }

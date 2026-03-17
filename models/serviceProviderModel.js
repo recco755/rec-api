@@ -1860,4 +1860,108 @@ module.exports = {
 
     return deferred.promise;
   },
+
+  getBoostDetails: async (req) => {
+    const { user_id } = req.body;
+    const deferred = q.defer();
+    const query = `SELECT * FROM ${tableConfig.SERVICE_BOOST} WHERE user_id = ${user_id} LIMIT 1`;
+    const rows = await commonFunction.getQueryResults(query);
+    if (!rows || rows.length === 0) {
+      deferred.resolve({ status: 1, data: null, message: "No boost data found" });
+      return deferred.promise;
+    }
+    const row = rows[0];
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const boost_image_url = row.boost_image_url
+      ? (row.boost_image_url.startsWith("http") ? row.boost_image_url : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`)
+      : null;
+    deferred.resolve({
+      status: 1,
+      data: { ...row, boost_image_url },
+    });
+    return deferred.promise;
+  },
+
+  saveBoostDetails: async (req) => {
+    const {
+      user_id,
+      business_service_name,
+      product_name,
+      boost_image_url,
+      before_price,
+      after_price,
+      email,
+      phone_number,
+      website_link,
+      description,
+    } = req.body;
+    const deferred = q.defer();
+    const date = new Date();
+    const checkQuery = `SELECT id FROM ${tableConfig.SERVICE_BOOST} WHERE user_id = ${user_id} LIMIT 1`;
+    const existing = await commonFunction.getQueryResults(checkQuery);
+
+    if (existing && existing.length > 0) {
+      const updateQuery = `UPDATE ${tableConfig.SERVICE_BOOST} SET
+        business_service_name = ?, product_name = ?, boost_image_url = ?,
+        before_price = ?, after_price = ?, email = ?, phone_number = ?,
+        website_link = ?, description = ?, updated_at = ?
+        WHERE user_id = ?`;
+      const updateValues = [
+        business_service_name || null,
+        product_name || null,
+        boost_image_url || null,
+        before_price || null,
+        after_price || null,
+        email || null,
+        phone_number || null,
+        website_link || null,
+        description || null,
+        date,
+        user_id,
+      ];
+      const updated = await commonFunction.updateQuery(updateQuery, updateValues);
+      deferred.resolve({
+        status: updated.affectedRows > 0 ? 1 : 0,
+        message: updated.affectedRows > 0 ? "Boost details updated successfully" : "No changes made",
+      });
+    } else {
+      const insertQuery = `INSERT INTO ${tableConfig.SERVICE_BOOST} SET ?`;
+      const insertData = {
+        user_id,
+        business_service_name: business_service_name || null,
+        product_name: product_name || null,
+        boost_image_url: boost_image_url || null,
+        before_price: before_price || null,
+        after_price: after_price || null,
+        email: email || null,
+        phone_number: phone_number || null,
+        website_link: website_link || null,
+        description: description || null,
+        created_at: date,
+        updated_at: date,
+      };
+      const inserted = await commonFunction.insertQuery(insertQuery, insertData);
+      deferred.resolve({
+        status: inserted.affectedRows > 0 ? 1 : 0,
+        message: inserted.affectedRows > 0 ? "Boost details saved successfully" : "Something went wrong",
+      });
+    }
+    return deferred.promise;
+  },
+
+  uploadBoostImage: async (req) => {
+    const deferred = q.defer();
+    if (!req.file || !req.file.filename) {
+      deferred.resolve({ status: 0, message: "No file uploaded" });
+      return deferred.promise;
+    }
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const boost_image_url = `${baseUrl}/boostImages/${req.file.filename}`;
+    deferred.resolve({
+      status: 1,
+      boost_image_url,
+      message: "Image uploaded successfully",
+    });
+    return deferred.promise;
+  },
 };
