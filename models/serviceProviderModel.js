@@ -2050,6 +2050,7 @@ module.exports = {
     }
     const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
     const qText = `SELECT d.id AS delivery_id,
+      d.expires_at AS offer_expires_at,
       b.user_id AS provider_user_id,
       b.business_service_name, b.product_name, b.boost_image_url,
       b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description
@@ -2077,6 +2078,10 @@ module.exports = {
         ? row.boost_image_url
         : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
       : null;
+    const offerExpires =
+      row.offer_expires_at instanceof Date
+        ? row.offer_expires_at.toISOString()
+        : row.offer_expires_at;
     const data = {
       user_id: row.provider_user_id,
       business_service_name: row.business_service_name,
@@ -2088,12 +2093,14 @@ module.exports = {
       phone_number: row.phone_number,
       website_link: row.website_link,
       description: row.description,
+      offer_expires_at: offerExpires,
     };
     deferred.resolve({
       status: 1,
       data,
       delivery_id,
       boost_image_url,
+      offer_expires_at: offerExpires,
       message: "OK",
     });
     return deferred.promise;
