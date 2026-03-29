@@ -204,6 +204,18 @@ module.exports = (app) => {
     multer({ storage: boostImageStorage }).single("boost_image"),
     serviceProviderController.uploadBoostImage
   );
+  app.post(
+    "/api/v1/service_provider/push_boost_to_contacts",
+    serviceProviderController.pushBoostToContacts
+  );
+  app.post(
+    "/api/v1/service_provider/home_boost_overlay",
+    serviceProviderController.getHomeBoostOverlay
+  );
+  app.post(
+    "/api/v1/service_provider/dismiss_boost_delivery",
+    serviceProviderController.dismissBoostDelivery
+  );
 
   // User or Recommendations
   app.post(

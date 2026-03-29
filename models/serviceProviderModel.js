@@ -1964,4 +1964,157 @@ module.exports = {
     });
     return deferred.promise;
   },
+
+  pushBoostToContacts: async (req) => {
+    const deferred = q.defer();
+    const providerUserId = parseInt(req.body.user_id, 10);
+    let durationMinutes = parseInt(req.body.duration_minutes, 10);
+    if (!providerUserId) {
+      deferred.resolve({ status: 0, message: "Invalid user_id" });
+      return deferred.promise;
+    }
+    if (!Number.isFinite(durationMinutes) || durationMinutes < 1) {
+      durationMinutes = 60;
+    }
+
+    let targets = req.body.target_user_ids;
+    if (typeof targets === "string") {
+      try {
+        targets = JSON.parse(targets);
+      } catch (e) {
+        targets = [];
+      }
+    }
+    if (!Array.isArray(targets)) {
+      targets = [];
+    }
+
+    const uniqueTargets = [
+      ...new Set(
+        targets
+          .map((id) => parseInt(id, 10))
+          .filter((id) => Number.isFinite(id) && id > 0 && id !== providerUserId)
+      ),
+    ];
+
+    if (uniqueTargets.length === 0) {
+      deferred.resolve({ status: 0, message: "No valid contacts selected" });
+      return deferred.promise;
+    }
+
+    const boostCheck = await commonFunction.getQueryResults(
+      `SELECT id FROM ${tableConfig.SERVICE_BOOST} WHERE user_id = ${providerUserId} LIMIT 1`
+    );
+    if (!boostCheck || boostCheck.length === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "Save your boost card first under Boost your business",
+      });
+      return deferred.promise;
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+    let inserted = 0;
+    for (const consumerUserId of uniqueTargets) {
+      const insertData = {
+        provider_user_id: providerUserId,
+        consumer_user_id: consumerUserId,
+        expires_at: expiresAt,
+        dismissed_at: null,
+        created_at: now,
+      };
+      const ins = await commonFunction.insertQuery(
+        `INSERT INTO ${tableConfig.SERVICE_BOOST_DELIVERY} SET ?`,
+        insertData
+      );
+      if (ins && ins.affectedRows > 0) inserted += 1;
+    }
+    deferred.resolve({
+      status: inserted > 0 ? 1 : 0,
+      message:
+        inserted > 0
+          ? `Boost sent to ${inserted} contact(s). They will see it on Home.`
+          : "Could not schedule boost",
+      inserted,
+    });
+    return deferred.promise;
+  },
+
+  getHomeBoostOverlayForConsumer: async (req) => {
+    const deferred = q.defer();
+    const consumerId = parseInt(req.body.user_id, 10);
+    if (!consumerId) {
+      deferred.resolve({ status: 0, message: "Invalid user_id", data: null });
+      return deferred.promise;
+    }
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const qText = `SELECT d.id AS delivery_id,
+      b.user_id AS provider_user_id,
+      b.business_service_name, b.product_name, b.boost_image_url,
+      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description
+      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
+      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+      WHERE d.consumer_user_id = ${consumerId}
+        AND d.expires_at > NOW()
+        AND d.dismissed_at IS NULL
+      ORDER BY d.created_at DESC
+      LIMIT 1`;
+    const rows = await commonFunction.getQueryResults(qText);
+    if (!rows || rows.length === 0) {
+      deferred.resolve({
+        status: 1,
+        data: null,
+        message: "No active boost",
+        delivery_id: null,
+      });
+      return deferred.promise;
+    }
+    const row = rows[0];
+    const delivery_id = row.delivery_id;
+    const boost_image_url = row.boost_image_url
+      ? row.boost_image_url.startsWith("http")
+        ? row.boost_image_url
+        : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
+      : null;
+    const data = {
+      user_id: row.provider_user_id,
+      business_service_name: row.business_service_name,
+      product_name: row.product_name,
+      boost_image_url,
+      before_price: row.before_price,
+      after_price: row.after_price,
+      email: row.email,
+      phone_number: row.phone_number,
+      website_link: row.website_link,
+      description: row.description,
+    };
+    deferred.resolve({
+      status: 1,
+      data,
+      delivery_id,
+      boost_image_url,
+      message: "OK",
+    });
+    return deferred.promise;
+  },
+
+  dismissBoostDelivery: async (req) => {
+    const deferred = q.defer();
+    const consumerId = parseInt(req.body.user_id, 10);
+    const deliveryId = parseInt(req.body.delivery_id, 10);
+    if (!consumerId || !deliveryId) {
+      deferred.resolve({ status: 0, message: "Invalid parameters" });
+      return deferred.promise;
+    }
+    const updated = await commonFunction.updateQuery(
+      `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET dismissed_at = NOW() WHERE id = ? AND consumer_user_id = ? AND dismissed_at IS NULL`,
+      [deliveryId, consumerId]
+    );
+    deferred.resolve({
+      status: updated.affectedRows > 0 ? 1 : 0,
+      message: updated.affectedRows > 0 ? "Dismissed" : "Nothing to dismiss",
+    });
+    return deferred.promise;
+  },
 };

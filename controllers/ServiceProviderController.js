@@ -115,6 +115,24 @@ module.exports = {
     });
   },
 
+  pushBoostToContacts: async (req, res) => {
+    serviceProviderModel.pushBoostToContacts(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  getHomeBoostOverlay: async (req, res) => {
+    serviceProviderModel.getHomeBoostOverlayForConsumer(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  dismissBoostDelivery: async (req, res) => {
+    serviceProviderModel.dismissBoostDelivery(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   counterApprove: async (req, res) => {
     serviceProviderModel.counterApprove(req).then(async (results) => {
       res.json(results);

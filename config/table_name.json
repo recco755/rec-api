@@ -15,5 +15,6 @@
   "CUSTOMER": "customers",
   "CONTACT_DETAIL": "contact_details",
   "WITHDRAW":"withdraw_request",
-  "SERVICE_BOOST": "service_boost"
+  "SERVICE_BOOST": "service_boost",
+  "SERVICE_BOOST_DELIVERY": "service_boost_delivery"
 }
