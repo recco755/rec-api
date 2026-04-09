@@ -147,6 +147,18 @@ module.exports = {
       res.json(results);
     });
   },
+
+  lookupWalletTransferRecipient: async (req, res) => {
+    authModels.lookupWalletTransferRecipient(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  transferWalletToRecipient: async (req, res) => {
+    authModels.transferWalletToRecipient(req).then((results) => {
+      res.json(results);
+    });
+  },
   withdrawRequestView: async (req, res) => {
     authModels.withdrawRequestView(req).then(async (results) => {
       res.json(results);

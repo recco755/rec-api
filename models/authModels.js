@@ -937,4 +937,131 @@ module.exports = {
 
     return deferred.promise;
   },
+
+  /**
+   * Business owner scanned a customer QR (email). Resolve recipient profile for wallet send preview.
+   */
+  lookupWalletTransferRecipient: async (req) => {
+    const deferred = q.defer();
+    const {user_id, recipient_email} = req.body;
+    if (!user_id || recipient_email === undefined || String(recipient_email).trim() === "") {
+      deferred.resolve({status: 0, message: "User and recipient email are required"});
+      return deferred.promise;
+    }
+    const emailNorm = String(recipient_email).trim().toLowerCase();
+    const senderSql = `SELECT id, name, email, is_service_provider FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+    conn.query(senderSql, [user_id], (err, senders) => {
+      if (err) {
+        deferred.resolve({status: 0, message: "Something went wrong"});
+        return;
+      }
+      if (!senders || senders.length === 0) {
+        deferred.resolve({status: 0, message: "Sender not found"});
+        return;
+      }
+      const sender = senders[0];
+      const sp = sender.is_service_provider;
+      if (sp != 1 && sp !== "1") {
+        deferred.resolve({status: 0, message: "Only business accounts can send wallet transfers"});
+        return;
+      }
+      const recipSql = `SELECT id, name, email, mobile_number, profile_url, is_service_provider FROM ${tableConfig.USER} WHERE LOWER(TRIM(email)) = ? AND status = 1 LIMIT 1`;
+      conn.query(recipSql, [emailNorm], (err2, recips) => {
+        if (err2) {
+          deferred.resolve({status: 0, message: "Something went wrong"});
+          return;
+        }
+        if (!recips || recips.length === 0) {
+          deferred.resolve({status: 0, message: "No account found for this email"});
+          return;
+        }
+        const r = recips[0];
+        if (String(r.id) === String(sender.id)) {
+          deferred.resolve({status: 0, message: "You cannot send money to yourself"});
+          return;
+        }
+        deferred.resolve({
+          status: 1,
+          data: {
+            recipient_id: r.id,
+            name: r.name,
+            email: r.email,
+            mobile_number: r.mobile_number,
+            profile_url: r.profile_url,
+            is_service_provider: r.is_service_provider,
+          },
+        });
+      });
+    });
+    return deferred.promise;
+  },
+
+  /**
+   * Move funds from business wallet to recipient (in-app balance). recipient_id must match lookup.
+   */
+  transferWalletToRecipient: async (req) => {
+    const deferred = q.defer();
+    const {user_id, recipient_id, amount} = req.body;
+    if (!user_id || !recipient_id || amount === undefined || amount === null || amount === "") {
+      deferred.resolve({status: 0, message: "Missing required fields"});
+      return deferred.promise;
+    }
+    const amt = Math.round(parseFloat(amount) * 100) / 100;
+    if (isNaN(amt) || amt < 0.01) {
+      deferred.resolve({status: 0, message: "Enter a valid amount (minimum $0.01)"});
+      return deferred.promise;
+    }
+    const senderSql = `SELECT id, is_service_provider, wallet_balance FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+    conn.query(senderSql, [user_id], (err, senders) => {
+      if (err || !senders || senders.length === 0) {
+        deferred.resolve({status: 0, message: "Sender not found"});
+        return;
+      }
+      const sender = senders[0];
+      const sp = sender.is_service_provider;
+      if (sp != 1 && sp !== "1") {
+        deferred.resolve({status: 0, message: "Only business accounts can send transfers"});
+        return;
+      }
+      if (String(sender.id) === String(recipient_id)) {
+        deferred.resolve({status: 0, message: "Invalid recipient"});
+        return;
+      }
+      const recipSql = `SELECT id FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      conn.query(recipSql, [recipient_id], (err2, recips) => {
+        if (err2 || !recips || recips.length === 0) {
+          deferred.resolve({status: 0, message: "Recipient not found"});
+          return;
+        }
+        const dedSql = `UPDATE ${tableConfig.USER} SET wallet_balance = wallet_balance - ? WHERE id = ? AND wallet_balance >= ?`;
+        conn.query(dedSql, [amt, user_id, amt], (err3, dedRes) => {
+          if (err3) {
+            deferred.resolve({status: 0, message: "Transfer failed"});
+            return;
+          }
+          if (!dedRes || dedRes.affectedRows === 0) {
+            deferred.resolve({status: 0, message: "Insufficient wallet balance"});
+            return;
+          }
+          const credSql = `UPDATE ${tableConfig.USER} SET wallet_balance = wallet_balance + ? WHERE id = ?`;
+          conn.query(credSql, [amt, recipient_id], (err4) => {
+            if (err4) {
+              console.error("transferWalletToRecipient credit failed after debit", err4);
+              deferred.resolve({
+                status: 0,
+                message: "Transfer could not be completed. Please contact support.",
+              });
+              return;
+            }
+            deferred.resolve({
+              status: 1,
+              message: "Transfer successful",
+              data: {amount: amt},
+            });
+          });
+        });
+      });
+    });
+    return deferred.promise;
+  },
 };

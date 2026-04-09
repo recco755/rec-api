@@ -67,6 +67,8 @@ module.exports = (app) => {
   app.post("/api/v1/view_profile", auth.viewProfile);
   app.post("/api/v1/edit_profile", auth.editProfile);
   app.post("/api/v1/show_wallet_balance", auth.showWalletBalance);
+  app.post("/api/v1/wallet/lookup_transfer_recipient", auth.lookupWalletTransferRecipient);
+  app.post("/api/v1/wallet/transfer_to_recipient", auth.transferWalletToRecipient);
   app.post("/api/v1/post_comments", auth.postComments);
   app.post("/api/v1/change_password", auth.changePassword);
   app.post("/api/v1/forgot_password", auth.forgotPassword);
