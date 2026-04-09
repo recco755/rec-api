@@ -1132,31 +1132,49 @@ module.exports = {
 
     const deferred = q.defer();
     const query = `
-      SELECT 
-        u.name AS paid_to, 
-        r.paid_at, 
-        r.amount_paid,
-        'commission' AS type
-      FROM ${tableConfig.RECOMMENDATIONS} AS r
-      INNER JOIN ${tableConfig.USER} AS u 
-        ON u.id = r.recommender_id
-      WHERE 
-        r.service_provider_id = ${service_provider_id} 
-        AND r.payment_status = '${payment_status}'
+      SELECT * FROM (
+        SELECT 
+          u.name AS paid_to, 
+          r.paid_at, 
+          r.amount_paid,
+          'commission' AS type,
+          NULL AS transfer_note,
+          CAST(NULL AS CHAR) AS transaction_id
+        FROM ${tableConfig.RECOMMENDATIONS} AS r
+        INNER JOIN ${tableConfig.USER} AS u 
+          ON u.id = r.recommender_id
+        WHERE 
+          r.service_provider_id = ${service_provider_id} 
+          AND r.payment_status = '${payment_status}'
+    
+        UNION
   
-      UNION
+        SELECT 
+          u.name AS paid_to, 
+          w.created_at AS paid_at, 
+          w.withdraw_amount AS amount_paid,
+          'credit' AS type,
+          NULL AS transfer_note,
+          CAST(NULL AS CHAR) AS transaction_id
+        FROM ${tableConfig.WITHDRAW} AS w
+        INNER JOIN ${tableConfig.USER} AS u 
+          ON u.id = w.user_id
+        WHERE 
+          w.type = 'credit'
   
-      SELECT 
-        u.name AS paid_to, 
-       w.created_at AS paid_at, 
-        w.withdraw_amount AS amount_paid,
-        'credit' AS type
-      FROM ${tableConfig.WITHDRAW} AS w
-      INNER JOIN ${tableConfig.USER} AS u 
-        ON u.id = w.user_id
-      WHERE 
-        w.type = 'credit'
+        UNION
   
+        SELECT 
+          u.name AS paid_to,
+          t.created_at AS paid_at,
+          t.amount AS amount_paid,
+          'wallet_send' AS type,
+          t.note AS transfer_note,
+          CAST(t.id AS CHAR) AS transaction_id
+        FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
+        INNER JOIN ${tableConfig.USER} AS u ON u.id = t.recipient_user_id
+        WHERE t.sender_user_id = ${service_provider_id}
+      ) AS commission_hist
       ORDER BY paid_at DESC;
     `;
     //  DATE_FORMAT(w.created_at, '%Y-%m-%d %H:%i:%s') AS paid_at,

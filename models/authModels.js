@@ -1001,7 +1001,7 @@ module.exports = {
    */
   transferWalletToRecipient: async (req) => {
     const deferred = q.defer();
-    const {user_id, recipient_id, amount} = req.body;
+    const {user_id, recipient_id, amount, note} = req.body;
     if (!user_id || !recipient_id || amount === undefined || amount === null || amount === "") {
       deferred.resolve({status: 0, message: "Missing required fields"});
       return deferred.promise;
@@ -1053,10 +1053,23 @@ module.exports = {
               });
               return;
             }
-            deferred.resolve({
-              status: 1,
-              message: "Transfer successful",
-              data: {amount: amt},
+            const noteTrim =
+              note != null && String(note).trim() !== ""
+                ? String(note).trim().slice(0, 500)
+                : null;
+            const logSql = `INSERT INTO ${tableConfig.WALLET_PEER_TRANSFER} (sender_user_id, recipient_user_id, amount, note) VALUES (?, ?, ?, ?)`;
+            conn.query(logSql, [user_id, recipient_id, amt, noteTrim], (err5, insertRes) => {
+              let transactionId = null;
+              if (err5) {
+                console.error("transferWalletToRecipient history insert failed", err5);
+              } else if (insertRes && insertRes.insertId != null) {
+                transactionId = insertRes.insertId;
+              }
+              deferred.resolve({
+                status: 1,
+                message: "Transfer successful",
+                data: {amount: amt, transaction_id: transactionId},
+              });
             });
           });
         });
