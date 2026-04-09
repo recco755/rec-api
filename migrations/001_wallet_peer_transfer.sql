@@ -7,8 +7,10 @@ CREATE TABLE IF NOT EXISTS wallet_peer_transfer (
   recipient_user_id INT UNSIGNED NOT NULL,
   amount DECIMAL(12, 2) NOT NULL,
   note VARCHAR(500) NULL,
+  reference_code VARCHAR(32) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
+  UNIQUE KEY uq_wallet_peer_transfer_ref (reference_code),
   KEY idx_sender (sender_user_id),
   KEY idx_recipient (recipient_user_id),
   KEY idx_created (created_at)

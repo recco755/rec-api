@@ -1170,12 +1170,15 @@ module.exports = {
           t.amount AS amount_paid,
           'wallet_send' AS type,
           t.note AS transfer_note,
-          CONCAT(
-            'Recco',
-            LPAD(
-              CAST(t.id AS CHAR),
-              GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
-              '0'
+          COALESCE(
+            t.reference_code,
+            CONCAT(
+              'Recco',
+              LPAD(
+                CAST(t.id AS CHAR),
+                GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
+                '0'
+              )
             )
           ) AS transaction_id
         FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t

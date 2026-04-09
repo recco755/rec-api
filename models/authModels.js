@@ -8,7 +8,7 @@ const multer = require("multer");
 const {getQueryResults, insertQuery} = require("../models/commonfunction");
 const generator = require("generate-password");
 const jwt = require("jsonwebtoken");
-const {formatWalletPeerTransferRef} = require("../common/walletTxnRef");
+const {insertWalletPeerTransferWithReference} = require("../common/walletTxnRef");
 
 module.exports = {
   signup: async (req) => {
@@ -1058,20 +1058,26 @@ module.exports = {
               note != null && String(note).trim() !== ""
                 ? String(note).trim().slice(0, 500)
                 : null;
-            const logSql = `INSERT INTO ${tableConfig.WALLET_PEER_TRANSFER} (sender_user_id, recipient_user_id, amount, note) VALUES (?, ?, ?, ?)`;
-            conn.query(logSql, [user_id, recipient_id, amt, noteTrim], (err5, insertRes) => {
-              let transactionId = null;
-              if (err5) {
-                console.error("transferWalletToRecipient history insert failed", err5);
-              } else if (insertRes && insertRes.insertId != null) {
-                transactionId = formatWalletPeerTransferRef(insertRes.insertId);
+            insertWalletPeerTransferWithReference(
+              conn,
+              tableConfig.WALLET_PEER_TRANSFER,
+              {
+                sender_user_id: user_id,
+                recipient_user_id: recipient_id,
+                amount: amt,
+                note: noteTrim,
+              },
+              (err5, referenceCode) => {
+                if (err5) {
+                  console.error("transferWalletToRecipient history insert failed", err5);
+                }
+                deferred.resolve({
+                  status: 1,
+                  message: "Transfer successful",
+                  data: {amount: amt, transaction_id: referenceCode || null},
+                });
               }
-              deferred.resolve({
-                status: 1,
-                message: "Transfer successful",
-                data: {amount: amt, transaction_id: transactionId},
-              });
-            });
+            );
           });
         });
       });

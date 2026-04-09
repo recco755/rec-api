@@ -749,12 +749,15 @@ module.exports = {
                        UNION ALL
                        SELECT t.created_at AS paid_at, t.amount AS amount_paid, CAST(t.amount AS CHAR) AS amount_received_by_recommender,
                          'wallet_receive' AS entry_type, u.name AS counterparty_name, t.note AS transfer_note,
-                         CONCAT(
-                           'Recco',
-                           LPAD(
-                             CAST(t.id AS CHAR),
-                             GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
-                             '0'
+                         COALESCE(
+                           t.reference_code,
+                           CONCAT(
+                             'Recco',
+                             LPAD(
+                               CAST(t.id AS CHAR),
+                               GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
+                               '0'
+                             )
                            )
                          ) AS transaction_id
                        FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
