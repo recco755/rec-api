@@ -763,6 +763,23 @@ module.exports = {
                        FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
                        INNER JOIN ${tableConfig.USER} AS u ON u.id = t.sender_user_id
                        WHERE t.recipient_user_id = ${user_id}
+                      UNION ALL
+                      SELECT t.created_at AS paid_at, t.amount AS amount_paid, CAST(NULL AS CHAR) AS amount_received_by_recommender,
+                        'wallet_send' AS entry_type, u.name AS counterparty_name, t.note AS transfer_note,
+                        COALESCE(
+                          t.reference_code,
+                          CONCAT(
+                            'Recco',
+                            LPAD(
+                              CAST(t.id AS CHAR),
+                              GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
+                              '0'
+                            )
+                          )
+                        ) AS transaction_id
+                      FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
+                      INNER JOIN ${tableConfig.USER} AS u ON u.id = t.recipient_user_id
+                      WHERE t.sender_user_id = ${user_id}
                      ) AS user_hist
                      ORDER BY paid_at DESC`;
 
