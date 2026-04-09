@@ -749,7 +749,14 @@ module.exports = {
                        UNION ALL
                        SELECT t.created_at AS paid_at, t.amount AS amount_paid, CAST(t.amount AS CHAR) AS amount_received_by_recommender,
                          'wallet_receive' AS entry_type, u.name AS counterparty_name, t.note AS transfer_note,
-                         CAST(t.id AS CHAR) AS transaction_id
+                         CONCAT(
+                           'Recco',
+                           LPAD(
+                             CAST(t.id AS CHAR),
+                             GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
+                             '0'
+                           )
+                         ) AS transaction_id
                        FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
                        INNER JOIN ${tableConfig.USER} AS u ON u.id = t.sender_user_id
                        WHERE t.recipient_user_id = ${user_id}

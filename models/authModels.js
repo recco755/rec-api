@@ -8,6 +8,7 @@ const multer = require("multer");
 const {getQueryResults, insertQuery} = require("../models/commonfunction");
 const generator = require("generate-password");
 const jwt = require("jsonwebtoken");
+const {formatWalletPeerTransferRef} = require("../common/walletTxnRef");
 
 module.exports = {
   signup: async (req) => {
@@ -1063,7 +1064,7 @@ module.exports = {
               if (err5) {
                 console.error("transferWalletToRecipient history insert failed", err5);
               } else if (insertRes && insertRes.insertId != null) {
-                transactionId = insertRes.insertId;
+                transactionId = formatWalletPeerTransferRef(insertRes.insertId);
               }
               deferred.resolve({
                 status: 1,

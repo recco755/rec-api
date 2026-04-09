@@ -1170,7 +1170,14 @@ module.exports = {
           t.amount AS amount_paid,
           'wallet_send' AS type,
           t.note AS transfer_note,
-          CAST(t.id AS CHAR) AS transaction_id
+          CONCAT(
+            'Recco',
+            LPAD(
+              CAST(t.id AS CHAR),
+              GREATEST(10, CHAR_LENGTH(CAST(t.id AS CHAR))),
+              '0'
+            )
+          ) AS transaction_id
         FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
         INNER JOIN ${tableConfig.USER} AS u ON u.id = t.recipient_user_id
         WHERE t.sender_user_id = ${service_provider_id}
