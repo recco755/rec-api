@@ -9,6 +9,7 @@ const {query} = require("../connection");
 const axios = require("axios");
 const pushNotification = require("../common/sendPushNotification");
 const {c} = require("locutus");
+const { buildUnreadSelect, buildUnreadJoin, markRecommendationRead } = require("../common/recommendationRead");
 
 /** Build full URL for business_icon so rectangle images load (same as viewService / profile page). */
 function toFullBusinessIconUrl(req, business_icon) {
@@ -265,7 +266,8 @@ module.exports = {
     const {user_id} = req.body;
     const deferred = q.defer();
     const getServiceQuery = `
-    SELECT r.*, 
+    SELECT r.*
+           ${buildUnreadSelect(user_id, "r")},
            s.business_icon,
            u2.profile_url as service_provider_profile, 
            u2.name as recommended, 
@@ -274,6 +276,7 @@ module.exports = {
            u1.profile_url as recommended_to_profile, 
            u1.name as recommended_to 
     FROM ${tableConfig.RECOMMENDATIONS} as r
+    ${buildUnreadJoin(user_id, "r")}
     LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
     LEFT JOIN ${tableConfig.USER} as u ON u.id = r.recommender_id
     LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
@@ -539,10 +542,13 @@ module.exports = {
     const {user_id, status = "accepted"} = req.body;
 
     const deferred = q.defer();
-    const query = `SELECT r.*, u.profile_url as recommender_profile, u.name as recommender_name, 
+    const query = `SELECT r.*
+                              ${buildUnreadSelect(user_id, "r")},
+                              u.profile_url as recommender_profile, u.name as recommender_name, 
                               u1.name as recommended_to_name, u1.profile_url as recommended_to_profile,
                               u2.profile_url as service_provider_profile, u2.name as service_provider_name
                               FROM ${tableConfig.RECOMMENDATIONS} as r 
+                       ${buildUnreadJoin(user_id, "r")}
                        INNER JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
                        INNER JOIN ${tableConfig.USER} as u ON u.id = r.recommender_id
                        INNER JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
@@ -1711,12 +1717,15 @@ module.exports = {
     const {service_provider_id} = req.body;
 
     const deferred = q.defer();
-    const query = `SELECT r.*, u.profile_url as recommender_profile, u.name as recommender_name, 
+    const query = `SELECT r.*
+                              ${buildUnreadSelect(service_provider_id, "r")},
+                              u.profile_url as recommender_profile, u.name as recommender_name, 
                               u1.name as recommended_to_name, u1.profile_url as recommended_to_profile,
                               u2.profile_url as service_provider_profile, u2.name as service_provider_name,
                               date_add(recommended_at, INTERVAL 48 hour) as expiredAt,
                               date_sub(now(), INTERVAL 48 hour) as expiryCheck
                               FROM ${tableConfig.RECOMMENDATIONS} as r 
+                       ${buildUnreadJoin(service_provider_id, "r")}
                        INNER JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
                        INNER JOIN ${tableConfig.USER} as u ON u.id = r.recommender_id
                        INNER JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
@@ -1909,6 +1918,34 @@ module.exports = {
       message: "Commission payment declined",
     });
 
+    return deferred.promise;
+  },
+
+  markRecommendationRead: async (req) => {
+    const { recommendation_id, user_id } = req.body;
+    const deferred = q.defer();
+    try {
+      const updated = await markRecommendationRead({
+        recommendationId: recommendation_id,
+        userId: user_id,
+      });
+      if (updated && updated.affectedRows >= 0) {
+        deferred.resolve({
+          status: 1,
+          message: "Recommendation marked as read",
+        });
+      } else {
+        deferred.resolve({
+          status: 0,
+          message: "Unable to mark recommendation as read",
+        });
+      }
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Unable to mark recommendation as read",
+      });
+    }
     return deferred.promise;
   },
 

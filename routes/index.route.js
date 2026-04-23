@@ -189,6 +189,10 @@ module.exports = (app) => {
     serviceProviderController.declineCommissionPayment
   );
   app.post(
+    "/api/v1/service_provider/mark_read",
+    serviceProviderController.markRecommendationRead
+  );
+  app.post(
     "/api/v1/service_provider/upload_business_icon",
     multer({ storage: fileStorage }).single("business_icon"),
     serviceProviderController.uploadBusinessIcon
@@ -303,6 +307,10 @@ module.exports = (app) => {
   app.post(
     "/api/v1/recommendations/service_details_by_owner_email",
     recommendationController.serviceDetailsByOwnerEmail
+  );
+  app.post(
+    "/api/v1/recommendations/mark_read",
+    recommendationController.markRecommendationRead
   );
 
   /* request withdraw */

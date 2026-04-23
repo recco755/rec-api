@@ -6,6 +6,7 @@ var commonFunction = require("../models/commonfunction");
 const mailNotification = require("../common/mailNotification");
 const {getQueryResults} = require("../models/commonfunction");
 const pushNotification = require("../common/sendPushNotification");
+const { buildUnreadSelect, buildUnreadJoin, markRecommendationRead } = require("../common/recommendationRead");
 
 /** Build full URL for business_icon so rectangle images load (same as viewService / profile page). */
 function toFullBusinessIconUrl(req, business_icon) {
@@ -444,12 +445,14 @@ module.exports = {
     const {user_id, status = "deleted"} = req.body;
     const deferred = q.defer();
     const getServiceQuery = `
-    SELECT r.*, 
+    SELECT r.*
+           ${buildUnreadSelect(user_id, "r")},
            s.business_icon,
            u1.profile_url as recommended_to_profile, u1.name as recommended_to, 
            u2.profile_url as service_provider_profile, u2.name as recommended, 
            u.profile_url as recommender_profile, u.name as recommender 
     FROM ${tableConfig.RECOMMENDATIONS} as r
+    ${buildUnreadJoin(user_id, "r")}
     LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
     LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
     LEFT JOIN ${tableConfig.USER} as u2 ON u2.id = r.service_provider_id
@@ -476,7 +479,8 @@ module.exports = {
     const {user_id} = req.body; // "type" will determine if it's for consumer or recommender
 
     const getServiceQuery = `
-      SELECT r.*, 
+      SELECT r.*
+             ${buildUnreadSelect(user_id, "r")},
              s.business_icon,
              u1.profile_url AS recommended_to_profile, 
              u1.name AS recommended_to, 
@@ -485,6 +489,7 @@ module.exports = {
              u.profile_url AS recommender_profile, 
              u.name AS recommender 
       FROM ${tableConfig.RECOMMENDATIONS} AS r
+      ${buildUnreadJoin(user_id, "r")}
       LEFT JOIN ${tableConfig.SERVICES} AS s ON s.id = r.service_id
       LEFT JOIN ${tableConfig.USER} AS u1 ON u1.id = r.consumer_id
       LEFT JOIN ${tableConfig.USER} AS u2 ON u2.id = r.service_provider_id
@@ -561,11 +566,14 @@ module.exports = {
   listRecommendations: async (req) => {
     const {user_id, status = "deleted"} = req.body;
     const deferred = q.defer();
-    const getServiceQuery = `SELECT r.*, s.business_icon,
+    const getServiceQuery = `SELECT r.*
+                                 ${buildUnreadSelect(user_id, "r")},
+                                 s.business_icon,
                                  u1.profile_url as recomended_to_profile,
                                  u1.name as recommended_to, u2.profile_url as service_provider_profile,
                                  u2.name as recommended, u.profile_url as recommender_profile, u.name as recommender 
                                  FROM ${tableConfig.RECOMMENDATIONS} as r
+                                 ${buildUnreadJoin(user_id, "r")}
                                  LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
                                  LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
                                  LEFT JOIN ${tableConfig.USER} as u2 ON u2.id = r.service_provider_id
@@ -1075,6 +1083,36 @@ module.exports = {
       deferred.resolve({
         status: 0,
         message: "something went wrong",
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  markRecommendationRead: async (req) => {
+    const { recommendation_id, user_id } = req.body;
+    const deferred = q.defer();
+
+    try {
+      const updated = await markRecommendationRead({
+        recommendationId: recommendation_id,
+        userId: user_id,
+      });
+      if (updated && updated.affectedRows >= 0) {
+        deferred.resolve({
+          status: 1,
+          message: "Recommendation marked as read",
+        });
+      } else {
+        deferred.resolve({
+          status: 0,
+          message: "Unable to mark recommendation as read",
+        });
+      }
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Unable to mark recommendation as read",
       });
     }
 

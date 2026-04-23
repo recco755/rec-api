@@ -209,4 +209,10 @@ module.exports = {
       res.json(results);
     })
   },
+
+  markRecommendationRead: async(req, res) => {
+    serviceProviderModel.markRecommendationRead(req).then(async (results) => {
+      res.json(results);
+    })
+  },
 }

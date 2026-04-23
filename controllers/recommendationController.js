@@ -145,4 +145,10 @@ module.exports = {
       res.json(results);
     });
   },
+
+  markRecommendationRead: async (req, res) => {
+    recommendationModel.markRecommendationRead(req).then(async (results) => {
+      res.json(results);
+    });
+  },
 }

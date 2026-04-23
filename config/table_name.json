@@ -17,5 +17,6 @@
   "WITHDRAW":"withdraw_request",
   "SERVICE_BOOST": "service_boost",
   "SERVICE_BOOST_DELIVERY": "service_boost_delivery",
-  "WALLET_PEER_TRANSFER": "wallet_peer_transfer"
+  "WALLET_PEER_TRANSFER": "wallet_peer_transfer",
+  "RECOMMENDATION_READS": "recommendation_reads"
 }
