@@ -148,6 +148,66 @@ module.exports = {
     });
   },
 
+  paymentPinStatus: async (req, res) => {
+    validation.validatePaymentPinUserId(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.paymentPinStatus(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
+  setInitialPaymentPin: async (req, res) => {
+    validation.validateSetPaymentPin(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.setInitialPaymentPin(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
+  verifyPaymentPin: async (req, res) => {
+    validation.validateVerifyPaymentPin(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.verifyPaymentPin(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
+  forgotPaymentPinSendOtp: async (req, res) => {
+    validation.validatePaymentPinUserId(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.forgotPaymentPinSendOtp(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
+  forgotPaymentPinVerifyOtp: async (req, res) => {
+    validation.validateOTP(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.forgotPaymentPinVerifyOtp(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
+  resetPaymentPinAfterForgot: async (req, res) => {
+    validation.validateSetPaymentPin(req).then((validationResults) => {
+      if (validationResults.length == 0) {
+        authModels.resetPaymentPinAfterForgot(req).then((results) => res.json(results));
+      } else {
+        res.json({status: 0, message: validationResults[0].msg});
+      }
+    });
+  },
+
   lookupWalletTransferRecipient: async (req, res) => {
     authModels.lookupWalletTransferRecipient(req).then((results) => {
       res.json(results);

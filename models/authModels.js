@@ -8,7 +8,23 @@ const multer = require("multer");
 const {getQueryResults, insertQuery} = require("../models/commonfunction");
 const generator = require("generate-password");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const {insertWalletPeerTransferWithReference} = require("../common/walletTxnRef");
+
+function paymentPinPepper() {
+  return String(process.env.PIN_PEPPER || process.env.TOKEN_KEY || "reccomman-payment-pin");
+}
+
+function hashPaymentPin(userId, pin) {
+  return crypto
+    .createHash("sha256")
+    .update(String(userId) + ":" + String(pin).trim() + ":" + paymentPinPepper())
+    .digest("hex");
+}
+
+function isFourDigitPin(pin) {
+  return typeof pin === "string" && /^\d{4}$/.test(String(pin).trim());
+}
 
 module.exports = {
   signup: async (req) => {
@@ -1082,6 +1098,306 @@ module.exports = {
         });
       });
     });
+    return deferred.promise;
+  },
+
+  paymentPinStatus: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    try {
+      const qstr = `SELECT payment_pin_hash FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      const rows = await new Promise((resolve, reject) => {
+        conn.query(qstr, [userId], (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      if (!rows.length) {
+        deferred.resolve({status: 0, message: "User not found"});
+        return deferred.promise;
+      }
+      const h = rows[0].payment_pin_hash;
+      const payment_pin_set = !!(h && String(h).trim() !== "");
+      deferred.resolve({status: 1, payment_pin_set});
+    } catch (e) {
+      console.error("paymentPinStatus", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
+    return deferred.promise;
+  },
+
+  setInitialPaymentPin: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    const pin = req.body.pin;
+    const confirm_pin = req.body.confirm_pin;
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    if (!isFourDigitPin(pin) || !isFourDigitPin(confirm_pin)) {
+      deferred.resolve({status: 0, message: "PIN must be exactly 4 digits"});
+      return deferred.promise;
+    }
+    if (String(pin).trim() !== String(confirm_pin).trim()) {
+      deferred.resolve({status: 0, message: "PIN and confirmation do not match"});
+      return deferred.promise;
+    }
+    try {
+      const sel = `SELECT payment_pin_hash FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      const rows = await new Promise((resolve, reject) => {
+        conn.query(sel, [userId], (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      if (!rows.length) {
+        deferred.resolve({status: 0, message: "User not found"});
+        return deferred.promise;
+      }
+      const existing = rows[0].payment_pin_hash;
+      if (existing && String(existing).trim() !== "") {
+        deferred.resolve({status: 0, message: "Payment PIN is already set. Use Forgot PIN to reset."});
+        return deferred.promise;
+      }
+      const hash = hashPaymentPin(userId, pin);
+      const upd = `UPDATE ${tableConfig.USER} SET payment_pin_hash = ?, payment_pin_reset_until = NULL WHERE id = ?`;
+      await new Promise((resolve, reject) => {
+        conn.query(upd, [hash, userId], (err, r) => {
+          if (err) reject(err);
+          else resolve(r);
+        });
+      });
+      deferred.resolve({status: 1, message: "Payment PIN created successfully"});
+    } catch (e) {
+      console.error("setInitialPaymentPin", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
+    return deferred.promise;
+  },
+
+  verifyPaymentPin: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    const pin = req.body.pin;
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    if (!isFourDigitPin(pin)) {
+      deferred.resolve({status: 0, message: "PIN must be exactly 4 digits"});
+      return deferred.promise;
+    }
+    try {
+      const sel = `SELECT payment_pin_hash FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      const rows = await new Promise((resolve, reject) => {
+        conn.query(sel, [userId], (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      if (!rows.length) {
+        deferred.resolve({status: 0, message: "User not found"});
+        return deferred.promise;
+      }
+      const stored = rows[0].payment_pin_hash;
+      if (!stored || String(stored).trim() === "") {
+        deferred.resolve({status: 0, message: "Payment PIN is not set"});
+        return deferred.promise;
+      }
+      const h = hashPaymentPin(userId, pin);
+      if (h === stored) {
+        deferred.resolve({status: 1, message: "PIN verified"});
+      } else {
+        deferred.resolve({status: 0, message: "Incorrect PIN"});
+      }
+    } catch (e) {
+      console.error("verifyPaymentPin", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
+    return deferred.promise;
+  },
+
+  forgotPaymentPinSendOtp: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    try {
+      const sel = `SELECT id, email, name, payment_pin_hash FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      const userRows = await new Promise((resolve, reject) => {
+        conn.query(sel, [userId], (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      if (!userRows.length) {
+        deferred.resolve({status: 0, message: "Account not found"});
+        return deferred.promise;
+      }
+      const u = userRows[0];
+      if (!u.payment_pin_hash || String(u.payment_pin_hash).trim() === "") {
+        deferred.resolve({status: 0, message: "Payment PIN is not set yet"});
+        return deferred.promise;
+      }
+      await commonFunction.getQueryResults(
+        "DELETE FROM " + tableConfig.OTP + " WHERE user_id='" + userId + "' and status = 0 ;"
+      );
+      const random = Math.floor(100000 + Math.random() * 900000);
+      const subject = "Reccomman - Reset payment PIN (OTP)";
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd;">
+          <h2 style="color: #333;">Payment PIN reset</h2>
+          <p>Hello ${u.name || "User"},</p>
+          <p>You requested to reset your payment PIN. Use this one-time code in the app:</p>
+          <p><strong>Your OTP:</strong> <span style="color: #04AFA3; font-weight: bold;">${random}</span></p>
+          <p>If you did not request this, please secure your account and contact support.</p>
+          <hr>
+          <p style="font-size: 12px; color: #777;">This is an automated message. Please do not reply.</p>
+        </div>
+      `;
+      const otp_data = {
+        user_id: userId,
+        otp: random,
+        status: 0,
+      };
+      const otp_insert_query = "INSERT INTO " + tableConfig.OTP + " SET ?";
+      await commonFunction.insertQuery(otp_insert_query, otp_data);
+      await mailNotification.sendMail(u.email, subject, htmlContent);
+      deferred.resolve({
+        status: 1,
+        message: "OTP sent to your email",
+      });
+    } catch (e) {
+      console.error("forgotPaymentPinSendOtp", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
+    return deferred.promise;
+  },
+
+  forgotPaymentPinVerifyOtp: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    const otp = req.body.otp;
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    if (otp == null || String(otp).trim() === "") {
+      deferred.resolve({status: 0, message: "Please enter OTP"});
+      return deferred.promise;
+    }
+    try {
+      const result = await new Promise((resolve, reject) => {
+        conn.query(
+          `SELECT * FROM ${tableConfig.OTP} WHERE user_id = ? AND otp = ? AND status = 0 LIMIT 1`,
+          [userId, String(otp).trim()],
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          }
+        );
+      });
+      if (!result.length) {
+        deferred.resolve({status: 0, message: "Invalid OTP"});
+        return deferred.promise;
+      }
+      const otpRow = result[0];
+      const data = {status: 1};
+      const cond = {id: otpRow.id};
+      await commonFunction.insertQuery("UPDATE " + tableConfig.OTP + " SET ? WHERE ?", [data, cond]);
+
+      const untilSql = `UPDATE ${tableConfig.USER} SET payment_pin_reset_until = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id = ? AND status = 1`;
+      await new Promise((resolve, reject) => {
+        conn.query(untilSql, [userId], (err, r) => {
+          if (err) reject(err);
+          else resolve(r);
+        });
+      });
+      deferred.resolve({
+        status: 1,
+        message: "OTP verified. You can set a new payment PIN.",
+      });
+    } catch (e) {
+      console.error("forgotPaymentPinVerifyOtp", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
+    return deferred.promise;
+  },
+
+  resetPaymentPinAfterForgot: async (req) => {
+    const deferred = q.defer();
+    const userId = parseInt(req.body.user_id, 10);
+    const pin = req.body.pin;
+    const confirm_pin = req.body.confirm_pin;
+    if (!userId) {
+      deferred.resolve({status: 0, message: "Invalid user"});
+      return deferred.promise;
+    }
+    if (!isFourDigitPin(pin) || !isFourDigitPin(confirm_pin)) {
+      deferred.resolve({status: 0, message: "PIN must be exactly 4 digits"});
+      return deferred.promise;
+    }
+    if (String(pin).trim() !== String(confirm_pin).trim()) {
+      deferred.resolve({status: 0, message: "PIN and confirmation do not match"});
+      return deferred.promise;
+    }
+    try {
+      const sel = `SELECT payment_pin_reset_until FROM ${tableConfig.USER} WHERE id = ? AND status = 1 LIMIT 1`;
+      const rows = await new Promise((resolve, reject) => {
+        conn.query(sel, [userId], (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      if (!rows.length) {
+        deferred.resolve({status: 0, message: "User not found"});
+        return deferred.promise;
+      }
+      const until = rows[0].payment_pin_reset_until;
+      if (!until) {
+        deferred.resolve({
+          status: 0,
+          message: "Please verify the OTP first",
+        });
+        return deferred.promise;
+      }
+      const checkUntil = await new Promise((resolve, reject) => {
+        conn.query(
+          `SELECT CASE WHEN payment_pin_reset_until > NOW() THEN 1 ELSE 0 END AS ok FROM ${tableConfig.USER} WHERE id = ?`,
+          [userId],
+          (err, results) => {
+            if (err) reject(err);
+            else resolve(results || []);
+          }
+        );
+      });
+      if (!checkUntil.length || !checkUntil[0].ok) {
+        deferred.resolve({
+          status: 0,
+          message: "Reset session expired. Please request a new OTP.",
+        });
+        return deferred.promise;
+      }
+      const hash = hashPaymentPin(userId, pin);
+      const upd = `UPDATE ${tableConfig.USER} SET payment_pin_hash = ?, payment_pin_reset_until = NULL WHERE id = ?`;
+      await new Promise((resolve, reject) => {
+        conn.query(upd, [hash, userId], (err, r) => {
+          if (err) reject(err);
+          else resolve(r);
+        });
+      });
+      deferred.resolve({status: 1, message: "Payment PIN updated successfully"});
+    } catch (e) {
+      console.error("resetPaymentPinAfterForgot", e);
+      deferred.resolve({status: 0, message: "Something went wrong"});
+    }
     return deferred.promise;
   },
 };

@@ -67,6 +67,12 @@ module.exports = (app) => {
   app.post("/api/v1/view_profile", auth.viewProfile);
   app.post("/api/v1/edit_profile", auth.editProfile);
   app.post("/api/v1/show_wallet_balance", auth.showWalletBalance);
+  app.post("/api/v1/payment_pin/status", auth.paymentPinStatus);
+  app.post("/api/v1/payment_pin/set", auth.setInitialPaymentPin);
+  app.post("/api/v1/payment_pin/verify", auth.verifyPaymentPin);
+  app.post("/api/v1/payment_pin/forgot_send_otp", auth.forgotPaymentPinSendOtp);
+  app.post("/api/v1/payment_pin/forgot_verify_otp", auth.forgotPaymentPinVerifyOtp);
+  app.post("/api/v1/payment_pin/reset_after_otp", auth.resetPaymentPinAfterForgot);
   app.post("/api/v1/wallet/lookup_transfer_recipient", auth.lookupWalletTransferRecipient);
   app.post("/api/v1/wallet/transfer_to_recipient", auth.transferWalletToRecipient);
   app.post("/api/v1/post_comments", auth.postComments);

@@ -75,6 +75,42 @@ module.exports = {
     return deferred.promise;
   },
 
+  validatePaymentPinUserId: (req) => {
+    var deferred = q.defer();
+    req.checkBody("user_id", "Please enter user_id").notEmpty();
+    if (!req.validationErrors()) {
+      deferred.resolve([]);
+    } else {
+      deferred.resolve(req.validationErrors());
+    }
+    return deferred.promise;
+  },
+
+  validateSetPaymentPin: (req) => {
+    var deferred = q.defer();
+    req.checkBody("user_id", "Please enter user_id").notEmpty();
+    req.checkBody("pin", "Please enter PIN").notEmpty();
+    req.checkBody("confirm_pin", "Please confirm PIN").notEmpty();
+    if (!req.validationErrors()) {
+      deferred.resolve([]);
+    } else {
+      deferred.resolve(req.validationErrors());
+    }
+    return deferred.promise;
+  },
+
+  validateVerifyPaymentPin: (req) => {
+    var deferred = q.defer();
+    req.checkBody("user_id", "Please enter user_id").notEmpty();
+    req.checkBody("pin", "Please enter PIN").notEmpty();
+    if (!req.validationErrors()) {
+      deferred.resolve([]);
+    } else {
+      deferred.resolve(req.validationErrors());
+    }
+    return deferred.promise;
+  },
+
   validateResendOTP: (req) => {
     var deferred = q.defer();
     req.checkBody("user_id", "Please enter user_id").notEmpty();
