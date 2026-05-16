@@ -1145,10 +1145,21 @@ module.exports = {
           r.amount_paid,
           'commission' AS type,
           NULL AS transfer_note,
-          CAST(NULL AS CHAR) AS transaction_id
+          CAST(NULL AS CHAR) AS transaction_id,
+          sp.name AS from_name,
+          u.name AS to_name,
+          cons.name AS customer_name,
+          TRIM(CONCAT_WS(' · ',
+            NULLIF(TRIM(s.business_name), ''),
+            NULLIF(TRIM(s.service), ''),
+            NULLIF(TRIM(r.feedback), ''),
+            NULLIF(TRIM(r.review), '')
+          )) AS purpose
         FROM ${tableConfig.RECOMMENDATIONS} AS r
-        INNER JOIN ${tableConfig.USER} AS u 
-          ON u.id = r.recommender_id
+        INNER JOIN ${tableConfig.USER} AS u ON u.id = r.recommender_id
+        INNER JOIN ${tableConfig.USER} AS sp ON sp.id = r.service_provider_id
+        INNER JOIN ${tableConfig.USER} AS cons ON cons.id = r.consumer_id
+        LEFT JOIN ${tableConfig.SERVICES} AS s ON s.id = r.service_id
         WHERE 
           r.service_provider_id = ${service_provider_id} 
           AND r.payment_status = '${payment_status}'
@@ -1161,12 +1172,17 @@ module.exports = {
           w.withdraw_amount AS amount_paid,
           'credit' AS type,
           NULL AS transfer_note,
-          CAST(NULL AS CHAR) AS transaction_id
+          CAST(NULL AS CHAR) AS transaction_id,
+          'Payment' AS from_name,
+          u.name AS to_name,
+          CAST(NULL AS CHAR) AS customer_name,
+          'Wallet top-up' AS purpose
         FROM ${tableConfig.WITHDRAW} AS w
         INNER JOIN ${tableConfig.USER} AS u 
           ON u.id = w.user_id
         WHERE 
           w.type = 'credit'
+          AND w.user_id = ${service_provider_id}
   
         UNION
   
@@ -1186,9 +1202,14 @@ module.exports = {
                 '0'
               )
             )
-          ) AS transaction_id
+          ) AS transaction_id,
+          sp.name AS from_name,
+          u.name AS to_name,
+          CAST(NULL AS CHAR) AS customer_name,
+          COALESCE(NULLIF(TRIM(t.note), ''), 'Wallet transfer sent') AS purpose
         FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
         INNER JOIN ${tableConfig.USER} AS u ON u.id = t.recipient_user_id
+        INNER JOIN ${tableConfig.USER} AS sp ON sp.id = t.sender_user_id
         WHERE t.sender_user_id = ${service_provider_id}
 
         UNION
@@ -1209,9 +1230,14 @@ module.exports = {
                 '0'
               )
             )
-          ) AS transaction_id
+          ) AS transaction_id,
+          u.name AS from_name,
+          sp.name AS to_name,
+          CAST(NULL AS CHAR) AS customer_name,
+          COALESCE(NULLIF(TRIM(t.note), ''), 'Wallet transfer received') AS purpose
         FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
         INNER JOIN ${tableConfig.USER} AS u ON u.id = t.sender_user_id
+        INNER JOIN ${tableConfig.USER} AS sp ON sp.id = t.recipient_user_id
         WHERE t.recipient_user_id = ${service_provider_id}
       ) AS commission_hist
       ORDER BY paid_at DESC;

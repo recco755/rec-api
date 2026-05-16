@@ -749,10 +749,20 @@ module.exports = {
     const deferred = q.defer();
     const query = `SELECT * FROM (
                        SELECT r.paid_at, r.amount_paid, IFNULL(r.amount_received_by_recommender, '') AS amount_received_by_recommender,
-                         'commission' AS entry_type, CAST(NULL AS CHAR) AS counterparty_name, CAST(NULL AS CHAR) AS transfer_note,
-                         CAST(NULL AS CHAR) AS transaction_id
-                       FROM ${tableConfig.RECOMMENDATIONS} as r
-                       INNER JOIN ${tableConfig.USER} as u ON u.id = r.recommender_id
+                         'commission' AS entry_type, sp.name AS counterparty_name, CAST(NULL AS CHAR) AS transfer_note,
+                         CAST(NULL AS CHAR) AS transaction_id,
+                         sp.name AS from_name, rec.name AS to_name, cons.name AS customer_name,
+                         TRIM(CONCAT_WS(' · ',
+                           NULLIF(TRIM(s.business_name), ''),
+                           NULLIF(TRIM(s.service), ''),
+                           NULLIF(TRIM(r.feedback), ''),
+                           NULLIF(TRIM(r.review), '')
+                         )) AS purpose
+                       FROM ${tableConfig.RECOMMENDATIONS} AS r
+                       INNER JOIN ${tableConfig.USER} AS rec ON rec.id = r.recommender_id
+                       INNER JOIN ${tableConfig.USER} AS sp ON sp.id = r.service_provider_id
+                       INNER JOIN ${tableConfig.USER} AS cons ON cons.id = r.consumer_id
+                       LEFT JOIN ${tableConfig.SERVICES} AS s ON s.id = r.service_id
                        WHERE r.recommender_id = ${user_id} AND r.payment_status = '${payment_status}'
                        UNION ALL
                        SELECT t.created_at AS paid_at, t.amount AS amount_paid, CAST(t.amount AS CHAR) AS amount_received_by_recommender,
@@ -767,7 +777,9 @@ module.exports = {
                                '0'
                              )
                            )
-                         ) AS transaction_id
+                         ) AS transaction_id,
+                         u.name AS from_name, CAST(NULL AS CHAR) AS to_name, CAST(NULL AS CHAR) AS customer_name,
+                         COALESCE(NULLIF(TRIM(t.note), ''), 'Wallet transfer received') AS purpose
                        FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
                        INNER JOIN ${tableConfig.USER} AS u ON u.id = t.sender_user_id
                        WHERE t.recipient_user_id = ${user_id}
@@ -784,7 +796,9 @@ module.exports = {
                               '0'
                             )
                           )
-                        ) AS transaction_id
+                        ) AS transaction_id,
+                        CAST(NULL AS CHAR) AS from_name, u.name AS to_name, CAST(NULL AS CHAR) AS customer_name,
+                        COALESCE(NULLIF(TRIM(t.note), ''), 'Wallet transfer sent') AS purpose
                       FROM ${tableConfig.WALLET_PEER_TRANSFER} AS t
                       INNER JOIN ${tableConfig.USER} AS u ON u.id = t.recipient_user_id
                       WHERE t.sender_user_id = ${user_id}
