@@ -212,6 +212,10 @@ module.exports = (app) => {
     serviceProviderController.saveBoostDetails
   );
   app.post(
+    "/api/v1/service_provider/reverse_geocode",
+    serviceProviderController.reverseGeocode
+  );
+  app.post(
     "/api/v1/service_provider/upload_boost_image",
     multer({ storage: boostImageStorage }).single("boost_image"),
     serviceProviderController.uploadBoostImage

@@ -109,6 +109,12 @@ module.exports = {
     });
   },
 
+  reverseGeocode: async (req, res) => {
+    serviceProviderModel.reverseGeocode(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   uploadBoostImage: async (req, res) => {
     serviceProviderModel.uploadBoostImage(req).then((results) => {
       res.json(results);

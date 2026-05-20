@@ -2188,7 +2188,8 @@ module.exports = {
       d.expires_at AS offer_expires_at,
       b.user_id AS provider_user_id,
       b.business_service_name, b.product_name, b.boost_image_url,
-      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description
+      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
+      b.location_address, b.location_latitude, b.location_longitude
       FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
       INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
       WHERE d.consumer_user_id = ${consumerId}
@@ -2228,6 +2229,9 @@ module.exports = {
       phone_number: row.phone_number,
       website_link: row.website_link,
       description: row.description,
+      location_address: row.location_address,
+      location_latitude: row.location_latitude,
+      location_longitude: row.location_longitude,
       offer_expires_at: offerExpires,
     };
     deferred.resolve({
