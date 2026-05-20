@@ -232,6 +232,10 @@ module.exports = (app) => {
     "/api/v1/service_provider/dismiss_boost_delivery",
     serviceProviderController.dismissBoostDelivery
   );
+  app.post(
+    "/api/v1/service_provider/home_boost_inbox",
+    serviceProviderController.getHomeBoostInbox
+  );
 
   // User or Recommendations
   app.post(

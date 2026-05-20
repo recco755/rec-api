@@ -2296,4 +2296,107 @@ module.exports = {
     });
     return deferred.promise;
   },
+
+  /** Dismissed (ignored) boosts still within offer window — shown under Flash inbox. */
+  getHomeBoostInboxForConsumer: async (req) => {
+    const deferred = q.defer();
+    const consumerId = parseInt(req.body.user_id, 10);
+    if (!consumerId) {
+      deferred.resolve({ status: 0, message: "Invalid user_id", data: null });
+      return deferred.promise;
+    }
+    let limit = parseInt(req.body.limit, 10);
+    let offset = parseInt(req.body.offset, 10);
+    if (!Number.isFinite(limit) || limit < 1) limit = 50;
+    if (limit > 100) limit = 100;
+    if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+    const baseUrl = process.env.BASE_URL || "http://13.212.181.108:8888";
+    const whereClause = `d.consumer_user_id = ${consumerId}
+        AND d.expires_at > NOW()
+        AND d.dismissed_at IS NOT NULL`;
+
+    const countRows = await commonFunction.getQueryResults(
+      `SELECT COUNT(*) AS total_count
+      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
+      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+      WHERE ${whereClause}`
+    );
+    const totalCount =
+      countRows && countRows[0]
+        ? parseInt(countRows[0].total_count, 10) || 0
+        : 0;
+
+    const qText = `SELECT d.id AS delivery_id,
+      d.expires_at AS offer_expires_at,
+      b.user_id AS provider_user_id,
+      b.business_service_name, b.product_name, b.boost_image_url,
+      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
+      b.location_address, b.location_latitude, b.location_longitude
+      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
+      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+      WHERE ${whereClause}
+      ORDER BY d.dismissed_at DESC
+      LIMIT ${limit} OFFSET ${offset}`;
+    const rows = await commonFunction.getQueryResults(qText);
+    if (!rows || rows.length === 0) {
+      deferred.resolve({
+        status: 1,
+        data: null,
+        items: [],
+        has_more: false,
+        total_count: totalCount,
+        offset,
+        limit,
+        message: "No saved boosts",
+        delivery_id: null,
+      });
+      return deferred.promise;
+    }
+    const mapRow = (row) => {
+      const boost_image_url = row.boost_image_url
+        ? row.boost_image_url.startsWith("http")
+          ? row.boost_image_url
+          : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
+        : null;
+      const offerExpires =
+        row.offer_expires_at instanceof Date
+          ? row.offer_expires_at.toISOString()
+          : row.offer_expires_at;
+      return {
+        delivery_id: row.delivery_id,
+        boost_image_url,
+        offer_expires_at: offerExpires,
+        user_id: row.provider_user_id,
+        business_service_name: row.business_service_name,
+        product_name: row.product_name,
+        before_price: row.before_price,
+        after_price: row.after_price,
+        email: row.email,
+        phone_number: row.phone_number,
+        website_link: row.website_link,
+        description: row.description,
+        location_address: row.location_address,
+        location_latitude: row.location_latitude,
+        location_longitude: row.location_longitude,
+      };
+    };
+    const items = rows.map(mapRow);
+    const first = items[0];
+    const hasMore = offset + items.length < totalCount;
+    deferred.resolve({
+      status: 1,
+      items,
+      has_more: hasMore,
+      total_count: totalCount,
+      offset,
+      limit,
+      data: first,
+      delivery_id: first.delivery_id,
+      boost_image_url: first.boost_image_url,
+      offer_expires_at: first.offer_expires_at,
+      message: "OK",
+    });
+    return deferred.promise;
+  },
 };
