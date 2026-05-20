@@ -236,6 +236,14 @@ module.exports = (app) => {
     "/api/v1/service_provider/home_boost_inbox",
     serviceProviderController.getHomeBoostInbox
   );
+  app.post(
+    "/api/v1/service_provider/like_boost_delivery",
+    serviceProviderController.likeBoostDelivery
+  );
+  app.post(
+    "/api/v1/service_provider/home_boost_likes",
+    serviceProviderController.getHomeBoostLikes
+  );
 
   // User or Recommendations
   app.post(

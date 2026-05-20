@@ -145,6 +145,18 @@ module.exports = {
     });
   },
 
+  likeBoostDelivery: async (req, res) => {
+    serviceProviderModel.likeBoostDelivery(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  getHomeBoostLikes: async (req, res) => {
+    serviceProviderModel.getHomeBoostLikesForConsumer(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   counterApprove: async (req, res) => {
     serviceProviderModel.counterApprove(req).then(async (results) => {
       res.json(results);
