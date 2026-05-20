@@ -2008,6 +2008,9 @@ module.exports = {
       phone_number,
       website_link,
       description,
+      location_address,
+      location_latitude,
+      location_longitude,
     } = req.body;
     const deferred = q.defer();
     const date = new Date();
@@ -2018,7 +2021,9 @@ module.exports = {
       const updateQuery = `UPDATE ${tableConfig.SERVICE_BOOST} SET
         business_service_name = ?, product_name = ?, boost_image_url = ?,
         before_price = ?, after_price = ?, email = ?, phone_number = ?,
-        website_link = ?, description = ?, updated_at = ?
+        website_link = ?, description = ?,
+        location_address = ?, location_latitude = ?, location_longitude = ?,
+        updated_at = ?
         WHERE user_id = ?`;
       const updateValues = [
         business_service_name || null,
@@ -2030,6 +2035,13 @@ module.exports = {
         phone_number || null,
         website_link || null,
         description || null,
+        location_address || null,
+        location_latitude != null && location_latitude !== ""
+          ? Number(location_latitude)
+          : null,
+        location_longitude != null && location_longitude !== ""
+          ? Number(location_longitude)
+          : null,
         date,
         user_id,
       ];
@@ -2051,6 +2063,15 @@ module.exports = {
         phone_number: phone_number || null,
         website_link: website_link || null,
         description: description || null,
+        location_address: location_address || null,
+        location_latitude:
+          location_latitude != null && location_latitude !== ""
+            ? Number(location_latitude)
+            : null,
+        location_longitude:
+          location_longitude != null && location_longitude !== ""
+            ? Number(location_longitude)
+            : null,
         created_at: date,
         updated_at: date,
       };

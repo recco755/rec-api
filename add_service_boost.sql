@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS service_boost (
   phone_number VARCHAR(64) DEFAULT NULL,
   website_link VARCHAR(512) DEFAULT NULL,
   description TEXT DEFAULT NULL,
+  location_address TEXT DEFAULT NULL,
+  location_latitude DOUBLE DEFAULT NULL,
+  location_longitude DOUBLE DEFAULT NULL,
   created_at DATETIME DEFAULT NULL,
   updated_at DATETIME DEFAULT NULL,
   KEY idx_user_id (user_id)
