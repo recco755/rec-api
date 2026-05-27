@@ -750,7 +750,7 @@ module.exports = {
     const query = `SELECT * FROM (
                        SELECT r.paid_at, r.amount_paid, IFNULL(r.amount_received_by_recommender, '') AS amount_received_by_recommender,
                          'commission' AS entry_type, sp.name AS counterparty_name, CAST(NULL AS CHAR) AS transfer_note,
-                         CAST(NULL AS CHAR) AS transaction_id,
+                         COALESCE(r.reference_id, CAST(NULL AS CHAR)) AS transaction_id,
                          sp.name AS from_name, rec.name AS to_name, cons.name AS customer_name,
                          TRIM(CONCAT_WS(' · ',
                            NULLIF(TRIM(s.business_name), ''),

@@ -606,11 +606,12 @@ module.exports = {
       amount_paid,
       status = "time_extended",
       customer_id,
+      reference_id = '',
     } = req.body;
 
     const deferred = q.defer();
-    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, extended_acceptance_time = ?, time_extended_at = ? WHERE id = ?`;
-    const recommendationUpdateData = [status, extend_hours, new Date(), recommendation_id];
+    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, extended_acceptance_time = ?, time_extended_at = ?, reference_id = ? WHERE id = ?`;
+    const recommendationUpdateData = [status, extend_hours, new Date(), reference_id, recommendation_id];
 
     if (from_wallet === "1") {
       const extended = await commonFunction.updateQuery(query, recommendationUpdateData);
@@ -1145,7 +1146,7 @@ module.exports = {
           r.amount_paid,
           'commission' AS type,
           NULL AS transfer_note,
-          CAST(NULL AS CHAR) AS transaction_id,
+          COALESCE(r.reference_id, CAST(NULL AS CHAR)) AS transaction_id,
           sp.name AS from_name,
           u.name AS to_name,
           cons.name AS customer_name,

@@ -221,7 +221,8 @@ async function updateCustomer(event) {
                                                                         payment_status = ?,
                                                                         paid_at = ?,
                                                                         admin_commission = ?,
-                                                                        amount_received_by_recommender = ? WHERE id = ? `;
+                                                                        amount_received_by_recommender = ?,
+                                                                        reference_id = ? WHERE id = ? `;
           const recommendationUpdateData = [
             amount_paid,
             "paid",
@@ -229,6 +230,7 @@ async function updateCustomer(event) {
             new Date(),
             adminCommission,
             recommenderCommission,
+            customer[0].payment_intent_id,
             customer[0].recommendation_id,
           ];
           // update recommendations table
@@ -361,7 +363,8 @@ async function updateCustomer(event) {
 
           const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?,
                                                                          extended_acceptance_time = ?,
-                                                                         time_extended_at = ? WHERE id = ?`;
+                                                                         time_extended_at = ?,
+                                                                         reference_id = ? WHERE id = ?`;
 
           const res = await axios.post(
             "http://ec2-54-255-217-96.ap-southeast-1.compute.amazonaws.com/Recomman/wp-json/wc/v1/settings",
@@ -370,7 +373,7 @@ async function updateCustomer(event) {
 
           const extend_hours = (amount_paid / Number(res.data.commission)).toFixed(2);
 
-          const recommendationUpdateData = ["time_extended", extend_hours, new Date(), customer[0].recommendation_id];
+          const recommendationUpdateData = ["time_extended", extend_hours, new Date(), customer[0].payment_intent_id, customer[0].recommendation_id];
 
           let transaction_updated = 1;
           const updateCustomerQuery = `UPDATE ${tableConfig.CUSTOMER} SET transaction_updated = ? WHERE customer_id = ?`;
@@ -497,7 +500,8 @@ async function updateCustomerForPaymentStatus(event) {
                                                                         payment_status = ?,
                                                                         paid_at = ?,
                                                                         admin_commission = ?,
-                                                                        amount_received_by_recommender = ? WHERE id = ? `;
+                                                                        amount_received_by_recommender = ?,
+                                                                        reference_id = ? WHERE id = ? `;
           const recommendationUpdateData = [
             amount_paid,
             "paid",
@@ -505,6 +509,7 @@ async function updateCustomerForPaymentStatus(event) {
             new Date(),
             adminCommission,
             recommenderCommission,
+            customer[0].payment_intent_id,
             customer[0].recommendation_id,
           ];
           // update recommendations table
@@ -637,7 +642,8 @@ async function updateCustomerForPaymentStatus(event) {
 
           const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?,
                                                                          extended_acceptance_time = ?,
-                                                                         time_extended_at = ? WHERE id = ?`;
+                                                                         time_extended_at = ?,
+                                                                         reference_id = ? WHERE id = ?`;
 
           const res = await axios.post(
             "http://ec2-54-255-217-96.ap-southeast-1.compute.amazonaws.com/Recomman/wp-json/wc/v1/settings",
@@ -646,7 +652,7 @@ async function updateCustomerForPaymentStatus(event) {
 
           const extend_hours = (amount_paid / Number(res.data.commission)).toFixed(2);
 
-          const recommendationUpdateData = ["time_extended", extend_hours, new Date(), customer[0].recommendation_id];
+          const recommendationUpdateData = ["time_extended", extend_hours, new Date(), customer[0].payment_intent_id, customer[0].recommendation_id];
 
           let transaction_updated = 1;
           const updateCustomerQuery = `UPDATE ${tableConfig.CUSTOMER} SET transaction_updated = ? WHERE customer_id = ?`;
