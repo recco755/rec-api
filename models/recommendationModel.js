@@ -496,7 +496,7 @@ module.exports = {
       LEFT JOIN ${tableConfig.USER} AS u ON u.id = r.recommender_id
       WHERE (r.consumer_id = ${user_id} OR r.recommender_id = ${user_id})
         AND r.status IN ('service_rendered', 'service_denied', 'expired', 'paid', 'counter_offer_declined', 'commission_payment_declined', 'declined')
-      ORDER BY r.created_at DESC
+      ORDER BY r.updated_at DESC
     `;
 
     try {

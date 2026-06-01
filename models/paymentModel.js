@@ -222,7 +222,8 @@ async function updateCustomer(event) {
                                                                         paid_at = ?,
                                                                         admin_commission = ?,
                                                                         amount_received_by_recommender = ?,
-                                                                        reference_id = ? WHERE id = ? `;
+                                                                        reference_id = ?,
+                                                                        updated_at = ? WHERE id = ? `;
           const recommendationUpdateData = [
             amount_paid,
             "paid",
@@ -231,6 +232,7 @@ async function updateCustomer(event) {
             adminCommission,
             recommenderCommission,
             customer[0].payment_intent_id,
+            new Date(),
             customer[0].recommendation_id,
           ];
           // update recommendations table
@@ -501,7 +503,8 @@ async function updateCustomerForPaymentStatus(event) {
                                                                         paid_at = ?,
                                                                         admin_commission = ?,
                                                                         amount_received_by_recommender = ?,
-                                                                        reference_id = ? WHERE id = ? `;
+                                                                        reference_id = ?,
+                                                                        updated_at = ? WHERE id = ? `;
           const recommendationUpdateData = [
             amount_paid,
             "paid",
@@ -510,6 +513,7 @@ async function updateCustomerForPaymentStatus(event) {
             adminCommission,
             recommenderCommission,
             customer[0].payment_intent_id,
+            new Date(),
             customer[0].recommendation_id,
           ];
           // update recommendations table

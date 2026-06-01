@@ -939,7 +939,8 @@ module.exports = {
                                                                  reference_id = ?,
                                                                  paid_at = ?,
                                                                  admin_commission = ?,
-                                                                 amount_received_by_recommender = ? WHERE id = ? `;
+                                                                 amount_received_by_recommender = ?,
+                                                                 updated_at = ? WHERE id = ? `;
       const recommendationUpdateData = [
         amount_paid,
         status,
@@ -948,6 +949,7 @@ module.exports = {
         paid_at,
         adminCommission,
         recommenderCommission,
+        new Date(),
         recommendation_id,
       ];
 

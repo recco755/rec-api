@@ -128,7 +128,8 @@ async function updateCustomer(event, wb = false) {
                                                                       payment_status = ?,
                                                                       paid_at = ?,
                                                                       admin_commission = ?,
-                                                                      amount_received_by_recommender = ? WHERE id = ? `;
+                                                                      amount_received_by_recommender = ?,
+                                                                      updated_at = ? WHERE id = ? `;
           const recommendationUpdateData = [
             amount_paid,
             "paid",
@@ -136,6 +137,7 @@ async function updateCustomer(event, wb = false) {
             new Date(),
             adminCommission,
             recommenderCommission,
+            new Date(),
             customer[0].recommendation_id,
           ];
           console.log(recommendationUpdateData, "recommendationUpdateData");
