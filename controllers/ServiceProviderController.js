@@ -127,6 +127,18 @@ module.exports = {
     });
   },
 
+  getBoostPushStatus: async (req, res) => {
+    serviceProviderModel.getBoostPushStatus(req).then((results) => {
+      res.json(results);
+    });
+  },
+
+  cancelActiveBoost: async (req, res) => {
+    serviceProviderModel.cancelActiveBoost(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   getHomeBoostOverlay: async (req, res) => {
     serviceProviderModel.getHomeBoostOverlayForConsumer(req).then((results) => {
       res.json(results);

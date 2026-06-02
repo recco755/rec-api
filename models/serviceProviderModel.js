@@ -20,6 +20,79 @@ function toFullBusinessIconUrl(req, business_icon) {
   return `${baseUrl}${sliced}`;
 }
 
+const BOOST_DAILY_LIMIT = 3;
+
+function formatBoostWaitRemaining(expiresAt) {
+  const end =
+    expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
+  const ms = Math.max(0, end.getTime() - Date.now());
+  const totalMinutes = Math.ceil(ms / 60000);
+  if (totalMinutes < 60) {
+    return {
+      wait_label: `${totalMinutes} min${totalMinutes === 1 ? "" : "s"}`,
+      hours_remaining: 0,
+      minutes_remaining: totalMinutes,
+    };
+  }
+  const hours = Math.ceil(totalMinutes / 60);
+  return {
+    wait_label: `${hours} hr${hours === 1 ? "" : "s"}`,
+    hours_remaining: hours,
+    minutes_remaining: totalMinutes,
+  };
+}
+
+async function getProviderBoostPushMeta(providerUserId) {
+  const dailyRows = await commonFunction.getQueryResults(
+    `SELECT COUNT(DISTINCT created_at) AS pushes_today
+     FROM ${tableConfig.SERVICE_BOOST_DELIVERY}
+     WHERE provider_user_id = ${providerUserId}
+     AND created_at >= CURDATE()
+     AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)`
+  );
+  const dailyUsed =
+    dailyRows && dailyRows[0]
+      ? parseInt(dailyRows[0].pushes_today, 10) || 0
+      : 0;
+
+  const activeRows = await commonFunction.getQueryResults(
+    `SELECT MAX(expires_at) AS active_expires_at,
+            COUNT(DISTINCT consumer_user_id) AS recipient_count
+     FROM ${tableConfig.SERVICE_BOOST_DELIVERY}
+     WHERE provider_user_id = ${providerUserId}
+     AND expires_at > NOW()`
+  );
+
+  let hasActive = false;
+  let activeExpiresAt = null;
+  let recipientCount = 0;
+  let wait = null;
+
+  if (activeRows && activeRows[0] && activeRows[0].active_expires_at) {
+    hasActive = true;
+    activeExpiresAt = activeRows[0].active_expires_at;
+    recipientCount = parseInt(activeRows[0].recipient_count, 10) || 0;
+    wait = formatBoostWaitRemaining(activeExpiresAt);
+  }
+
+  const activeExpiresIso =
+    activeExpiresAt instanceof Date
+      ? activeExpiresAt.toISOString()
+      : activeExpiresAt;
+
+  return {
+    has_active_boost: hasActive,
+    active_expires_at: activeExpiresIso,
+    active_recipient_count: recipientCount,
+    wait_label: wait ? wait.wait_label : null,
+    hours_remaining: wait ? wait.hours_remaining : null,
+    minutes_remaining: wait ? wait.minutes_remaining : null,
+    daily_boosts_used: dailyUsed,
+    daily_boost_limit: BOOST_DAILY_LIMIT,
+    daily_boosts_remaining: Math.max(0, BOOST_DAILY_LIMIT - dailyUsed),
+  };
+}
+
 module.exports = {
   createOrEditService: async (req) => {
     const deferred = q.defer();
@@ -2151,6 +2224,40 @@ module.exports = {
       return deferred.promise;
     }
 
+    const forceReplace =
+      req.body.force_replace === true ||
+      req.body.force_replace === 1 ||
+      req.body.force_replace === "1";
+
+    const pushMeta = await getProviderBoostPushMeta(providerUserId);
+
+    if (pushMeta.daily_boosts_used >= BOOST_DAILY_LIMIT) {
+      deferred.resolve({
+        status: 0,
+        error_code: "DAILY_LIMIT",
+        message: `Daily boost limit reached (${BOOST_DAILY_LIMIT}/${BOOST_DAILY_LIMIT}). Try again tomorrow.`,
+        ...pushMeta,
+      });
+      return deferred.promise;
+    }
+
+    if (pushMeta.has_active_boost && !forceReplace) {
+      deferred.resolve({
+        status: 0,
+        error_code: "ACTIVE_BOOST",
+        message: `You already have an active boost. Wait about ${pushMeta.wait_label}, or delete the active boost to send another. Daily boosts: ${pushMeta.daily_boosts_used}/${BOOST_DAILY_LIMIT} used.`,
+        ...pushMeta,
+      });
+      return deferred.promise;
+    }
+
+    if (pushMeta.has_active_boost && forceReplace) {
+      await commonFunction.updateQuery(
+        `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW()`,
+        [providerUserId]
+      );
+    }
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
     let inserted = 0;
@@ -2168,13 +2275,56 @@ module.exports = {
       );
       if (ins && ins.affectedRows > 0) inserted += 1;
     }
+    const updatedMeta = await getProviderBoostPushMeta(providerUserId);
     deferred.resolve({
       status: inserted > 0 ? 1 : 0,
       message:
         inserted > 0
-          ? `Boost sent to ${inserted} contact(s). They will see it on Home.`
+          ? `Boost sent to ${inserted} contact(s). They will see it on Home. Daily boosts: ${updatedMeta.daily_boosts_used}/${BOOST_DAILY_LIMIT}.`
           : "Could not schedule boost",
       inserted,
+      ...updatedMeta,
+    });
+    return deferred.promise;
+  },
+
+  getBoostPushStatus: async (req) => {
+    const deferred = q.defer();
+    const providerUserId = parseInt(req.body.user_id, 10);
+    if (!providerUserId) {
+      deferred.resolve({ status: 0, message: "Invalid user_id" });
+      return deferred.promise;
+    }
+    const meta = await getProviderBoostPushMeta(providerUserId);
+    deferred.resolve({
+      status: 1,
+      message: "OK",
+      ...meta,
+    });
+    return deferred.promise;
+  },
+
+  cancelActiveBoost: async (req) => {
+    const deferred = q.defer();
+    const providerUserId = parseInt(req.body.user_id, 10);
+    if (!providerUserId) {
+      deferred.resolve({ status: 0, message: "Invalid user_id" });
+      return deferred.promise;
+    }
+    const updated = await commonFunction.updateQuery(
+      `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW()`,
+      [providerUserId]
+    );
+    const cancelled = updated.affectedRows || 0;
+    const meta = await getProviderBoostPushMeta(providerUserId);
+    deferred.resolve({
+      status: cancelled > 0 ? 1 : 0,
+      message:
+        cancelled > 0
+          ? "Active boost removed. You can send a new boost."
+          : "No active boost to remove",
+      cancelled_deliveries: cancelled,
+      ...meta,
     });
     return deferred.promise;
   },

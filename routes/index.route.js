@@ -225,6 +225,14 @@ module.exports = (app) => {
     serviceProviderController.pushBoostToContacts
   );
   app.post(
+    "/api/v1/service_provider/get_boost_push_status",
+    serviceProviderController.getBoostPushStatus
+  );
+  app.post(
+    "/api/v1/service_provider/cancel_active_boost",
+    serviceProviderController.cancelActiveBoost
+  );
+  app.post(
     "/api/v1/service_provider/home_boost_overlay",
     serviceProviderController.getHomeBoostOverlay
   );
