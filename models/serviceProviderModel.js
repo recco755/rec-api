@@ -2280,7 +2280,7 @@ module.exports = {
       status: inserted > 0 ? 1 : 0,
       message:
         inserted > 0
-          ? `Boost sent to ${inserted} contact(s). They will see it on Home. Daily boosts: ${updatedMeta.daily_boosts_used}/${BOOST_DAILY_LIMIT}.`
+          ? `Boost campaign sent successfully to ${inserted} selected contact(s). Daily usage: ${updatedMeta.daily_boosts_used}/${BOOST_DAILY_LIMIT}.`
           : "Could not schedule boost",
       inserted,
       ...updatedMeta,
