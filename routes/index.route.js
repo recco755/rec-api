@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 module.exports = (app) => {
   const auth = require("../controllers/AuthController");
   const serviceProviderController = require("../controllers/ServiceProviderController");
+  const circleQueryController = require("../controllers/circleQueryController");
   const recommendationController = require("../controllers/recommendationController");
   const wallet = require("../controllers/walletController");
   const multer = require("multer");
@@ -251,6 +252,47 @@ module.exports = (app) => {
   app.post(
     "/api/v1/service_provider/home_boost_likes",
     serviceProviderController.getHomeBoostLikes
+  );
+
+  app.post(
+    "/api/v1/circle_query/get_query",
+    circleQueryController.getCircleQueryDetails
+  );
+  app.post(
+    "/api/v1/circle_query/save_query",
+    circleQueryController.saveCircleQueryDetails
+  );
+  app.post(
+    "/api/v1/circle_query/push_query_to_contacts",
+    circleQueryController.pushCircleQueryToContacts
+  );
+  app.post(
+    "/api/v1/circle_query/get_query_push_status",
+    circleQueryController.getCircleQueryPushStatus
+  );
+  app.post(
+    "/api/v1/circle_query/cancel_active_query",
+    circleQueryController.cancelActiveCircleQuery
+  );
+  app.post(
+    "/api/v1/circle_query/home_query_overlay",
+    circleQueryController.getHomeCircleQueryOverlay
+  );
+  app.post(
+    "/api/v1/circle_query/dismiss_query_delivery",
+    circleQueryController.dismissCircleQueryDelivery
+  );
+  app.post(
+    "/api/v1/circle_query/like_query_delivery",
+    circleQueryController.likeCircleQueryDelivery
+  );
+  app.post(
+    "/api/v1/circle_query/home_query_inbox",
+    circleQueryController.getHomeCircleQueryInbox
+  );
+  app.post(
+    "/api/v1/circle_query/home_query_likes",
+    circleQueryController.getHomeCircleQueryLikes
   );
 
   // User or Recommendations
