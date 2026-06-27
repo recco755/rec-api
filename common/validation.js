@@ -144,9 +144,6 @@ module.exports = {
     req.checkBody("experienced", "Please enter experienced").notEmpty();
     // req.checkBody("rating", "Please enter rating").notEmpty();
     // req.checkBody("feedback", "Please enter feedback").notEmpty();
-    req
-      .checkBody("expected_commission", "Please enter expected_commission")
-      .notEmpty();
     if (!req.validationErrors()) {
       deferred.resolve([]);
     } else {
