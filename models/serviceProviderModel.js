@@ -312,7 +312,7 @@ module.exports = {
     }
     
     const row = service[0];
-    final showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+    const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
     const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
     const showYoutube = row.show_youtube_on_cards !== 0 && row.show_youtube_on_cards !== '0';
     const {business_icon} = row;
