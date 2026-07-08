@@ -2,7 +2,7 @@ var tableConfig = require("../config/table_name.json");
 var q = require("q");
 var commonFunction = require("../models/commonfunction");
 
-const QUERY_DAILY_LIMIT = 3;
+const QUERY_DAILY_LIMIT = 10;
 
 function formatQueryWaitRemaining(expiresAt) {
   const end =

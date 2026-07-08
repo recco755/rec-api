@@ -20,7 +20,7 @@ function toFullBusinessIconUrl(req, business_icon) {
   return `${baseUrl}${sliced}`;
 }
 
-const BOOST_DAILY_LIMIT = 3;
+const BOOST_DAILY_LIMIT = 10;
 
 function formatBoostWaitRemaining(expiresAt) {
   const end =
