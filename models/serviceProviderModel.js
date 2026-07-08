@@ -118,6 +118,8 @@ module.exports = {
       display_phone,
       show_email_on_cards,
       show_phone_on_cards,
+      youtube_video_link,
+      show_youtube_on_cards,
     } = req.body;
 
     console.log(req.body);
@@ -169,6 +171,8 @@ module.exports = {
         carousel_image_1,
         carousel_image_2,
         carousel_image_3,
+        youtube_video_link,
+        show_youtube_on_cards,
       };
 
       const updateQueryData = buildUpdateQuery(fieldsToUpdate);
@@ -241,6 +245,8 @@ module.exports = {
         carousel_image_1,
         carousel_image_2,
         carousel_image_3,
+        youtube_video_link,
+        show_youtube_on_cards,
       };
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
@@ -306,8 +312,9 @@ module.exports = {
     }
     
     const row = service[0];
-    const showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
+    final showEmail = row.show_email_on_cards !== 0 && row.show_email_on_cards !== '0';
     const showPhone = row.show_phone_on_cards !== 0 && row.show_phone_on_cards !== '0';
+    const showYoutube = row.show_youtube_on_cards !== 0 && row.show_youtube_on_cards !== '0';
     const {business_icon} = row;
     const carousel_image_1 = row.carousel_image_1 || null;
     const carousel_image_2 = row.carousel_image_2 || null;
@@ -330,6 +337,9 @@ module.exports = {
         service_provider_mobile_number: showPhone ? (row.service_provider_mobile_number || '') : '',
         show_email_on_cards: row.show_email_on_cards,
         show_phone_on_cards: row.show_phone_on_cards,
+        youtube_video_link: row.youtube_video_link || null,
+        show_youtube_on_cards: row.show_youtube_on_cards,
+        youtube_video_link_for_cards: showYoutube ? (row.youtube_video_link || null) : null,
       }],
     });
     return deferred.promise;
