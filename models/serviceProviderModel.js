@@ -120,6 +120,7 @@ module.exports = {
       show_phone_on_cards,
       youtube_video_link,
       show_youtube_on_cards,
+      is_accepting_recommendations,
     } = req.body;
 
     console.log(req.body);
@@ -173,6 +174,12 @@ module.exports = {
         carousel_image_3,
         youtube_video_link,
         show_youtube_on_cards,
+        is_accepting_recommendations:
+          is_accepting_recommendations === undefined ||
+          is_accepting_recommendations === null ||
+          is_accepting_recommendations === ""
+            ? undefined
+            : Number(is_accepting_recommendations) ? 1 : 0,
       };
 
       const updateQueryData = buildUpdateQuery(fieldsToUpdate);
@@ -247,6 +254,12 @@ module.exports = {
         carousel_image_3,
         youtube_video_link,
         show_youtube_on_cards,
+        is_accepting_recommendations:
+          is_accepting_recommendations === undefined ||
+          is_accepting_recommendations === null ||
+          is_accepting_recommendations === ""
+            ? 1
+            : Number(is_accepting_recommendations) ? 1 : 0,
       };
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);

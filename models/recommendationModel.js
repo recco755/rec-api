@@ -293,12 +293,14 @@ module.exports = {
                                             u.email, 
                                             u.mobile_number, 
                                             u.is_service_provider,
-                                            s.service
+                                            s.service,
+                                            IFNULL(s.is_accepting_recommendations, 1) as is_accepting_recommendations
                                       FROM ${tableConfig.USER} as u
-                                      LEFT JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
+                                      INNER JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
                                        WHERE u.id != ${user_id} 
                                              AND u.is_service_provider = ${is_service_provider}
                                              AND u.status = 1 
+                                             AND IFNULL(s.is_accepting_recommendations, 1) = 1
                                              AND (u.email like '%${email}%' OR u.name like '%${email}%') 
                                        GROUP BY u.id 
                                        ORDER BY u.id DESC
@@ -306,12 +308,14 @@ module.exports = {
 
       const service = await commonFunction.getQueryResults(getServiceQuery);
 
-      const countQuery = `SELECT COUNT(*) as count 
-                          FROM ${tableConfig.USER} 
-                          WHERE id != ${user_id} 
-                            AND is_service_provider = ${is_service_provider} 
-                            AND status = 1  -- Added status check
-                            AND (email like '%${email}%' OR name like '%${email}%')`;
+      const countQuery = `SELECT COUNT(DISTINCT u.id) as count 
+                          FROM ${tableConfig.USER} as u
+                          INNER JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
+                          WHERE u.id != ${user_id} 
+                            AND u.is_service_provider = ${is_service_provider} 
+                            AND u.status = 1
+                            AND IFNULL(s.is_accepting_recommendations, 1) = 1
+                            AND (u.email like '%${email}%' OR u.name like '%${email}%')`;
 
       const count = await commonFunction.getQueryResults(countQuery);
       const data = {users: service, count: count[0].count};
@@ -321,23 +325,27 @@ module.exports = {
         data: data,
       });
     } else {
-      const getServiceQuery = `SELECT u.id, u.profile_url, u.name, u.email, u.mobile_number, u.is_service_provider, s.service
+      const getServiceQuery = `SELECT u.id, u.profile_url, u.name, u.email, u.mobile_number, u.is_service_provider, s.service,
+                                            IFNULL(s.is_accepting_recommendations, 1) as is_accepting_recommendations
                                        FROM ${tableConfig.USER} as u
-                                       LEFT JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
+                                       INNER JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
                                        WHERE u.id != ${user_id} 
                                              AND u.is_service_provider = ${is_service_provider} 
                                              AND u.status = 1
+                                             AND IFNULL(s.is_accepting_recommendations, 1) = 1
                                        GROUP BY u.id
                                        ORDER BY u.id DESC
                                        LIMIT ${limit} OFFSET ${offset}`;
 
       const service = await commonFunction.getQueryResults(getServiceQuery);
 
-      const countQuery = `SELECT COUNT(*) as count 
-                          FROM ${tableConfig.USER} 
-                          WHERE id != ${user_id} 
-                            AND is_service_provider = ${is_service_provider} 
-                            AND status = 1`;
+      const countQuery = `SELECT COUNT(DISTINCT u.id) as count 
+                          FROM ${tableConfig.USER} as u
+                          INNER JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
+                          WHERE u.id != ${user_id} 
+                            AND u.is_service_provider = ${is_service_provider} 
+                            AND u.status = 1
+                            AND IFNULL(s.is_accepting_recommendations, 1) = 1`;
 
       const count = await commonFunction.getQueryResults(countQuery);
       const data = {users: service, count: count[0].count};
@@ -637,7 +645,8 @@ module.exports = {
                                         IFNULL(u3.show_phone_on_cards, 1) as show_phone_on_cards,
                                         IFNULL(r.rating, 0) as user_rating,
                                         IFNULL(s.commission_guideline, null) AS commission_guideline,
-                                        IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission
+                                        IFNULL(s.repeated_customer_commission, null) AS repeated_customer_commission,
+                                        IFNULL(s.is_accepting_recommendations, 1) AS is_accepting_recommendations
                                  FROM ${tableConfig.RECOMMENDATIONS} as r
                                  LEFT JOIN ${tableConfig.SERVICES} as s ON s.id = r.service_id
                                  LEFT JOIN ${tableConfig.USER} as u1 ON u1.id = r.consumer_id
