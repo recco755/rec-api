@@ -20,6 +20,28 @@ module.exports = {
     });
   },
 
+  updateAcceptingRecommendations: async (req, res) => {
+    const {user_id, is_accepting_recommendations} = req.body || {};
+    if (!user_id && user_id !== 0) {
+      return res.json({status: 0, message: "Please enter user_id"});
+    }
+    if (
+      is_accepting_recommendations === undefined ||
+      is_accepting_recommendations === null ||
+      is_accepting_recommendations === ""
+    ) {
+      return res.json({
+        status: 0,
+        message: "Please enter is_accepting_recommendations",
+      });
+    }
+    serviceProviderModel
+      .updateAcceptingRecommendations(req)
+      .then(async (results) => {
+        res.json(results);
+      });
+  },
+
   viewService: async (req, res) => {
         serviceProviderModel.viewService(req).then(async (results) => {
             res.json(results);

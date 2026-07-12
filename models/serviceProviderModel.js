@@ -302,6 +302,47 @@ module.exports = {
     return deferred.promise;
   },
 
+  updateAcceptingRecommendations: async (req) => {
+    const deferred = q.defer();
+    const {user_id, is_accepting_recommendations} = req.body;
+    const value = Number(is_accepting_recommendations) ? 1 : 0;
+    const date = new Date();
+
+    const existCheckQuery = `SELECT COUNT(*) as count FROM ${tableConfig.SERVICES} WHERE userId = ${user_id}`;
+    const serviceExists = await commonFunction.getQueryResults(existCheckQuery);
+
+    if (!serviceExists || serviceExists[0].count === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "Service not found",
+      });
+      return deferred.promise;
+    }
+
+    const updated = await commonFunction.updateQuery(
+      `UPDATE ${tableConfig.SERVICES} SET is_accepting_recommendations = ?, updated_at = ? WHERE userId = ?`,
+      [value, date, user_id]
+    );
+
+    if (updated.affectedRows > 0) {
+      deferred.resolve({
+        status: 1,
+        message:
+          value === 1
+            ? "Your service is now available"
+            : "Your service is hidden from Select service",
+        data: {is_accepting_recommendations: value},
+      });
+    } else {
+      deferred.resolve({
+        status: 0,
+        message: "No matching record found or no changes made",
+      });
+    }
+
+    return deferred.promise;
+  },
+
   viewService: async (req) => {
     const {user_id} = req.body;
     const deferred = q.defer();

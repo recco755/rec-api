@@ -103,6 +103,10 @@ module.exports = (app) => {
     serviceProviderController.createOrEditService
   );
   app.post(
+    "/api/v1/service_provider/update_accepting_recommendations",
+    serviceProviderController.updateAcceptingRecommendations
+  );
+  app.post(
     "/api/v1/service_provider/view_service",
     serviceProviderController.viewService
   );
