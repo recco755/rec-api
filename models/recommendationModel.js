@@ -292,14 +292,16 @@ module.exports = {
                                             u.name, 
                                             u.email, 
                                             u.mobile_number, 
-                                            u.is_service_provider 
+                                            u.is_service_provider,
+                                            s.service
                                       FROM ${tableConfig.USER} as u
+                                      LEFT JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
                                        WHERE u.id != ${user_id} 
                                              AND u.is_service_provider = ${is_service_provider}
                                              AND u.status = 1 
                                              AND (u.email like '%${email}%' OR u.name like '%${email}%') 
                                        GROUP BY u.id 
-                                       ORDER BY id DESC
+                                       ORDER BY u.id DESC
                                        LIMIT ${limit} OFFSET ${offset}`;
 
       const service = await commonFunction.getQueryResults(getServiceQuery);
@@ -319,12 +321,14 @@ module.exports = {
         data: data,
       });
     } else {
-      const getServiceQuery = `SELECT id, profile_url, name, email, mobile_number, is_service_provider
-                                       FROM ${tableConfig.USER} 
-                                       WHERE id != ${user_id} 
-                                             AND is_service_provider = ${is_service_provider} 
-                                             AND status = 1
-                                       ORDER BY id DESC
+      const getServiceQuery = `SELECT u.id, u.profile_url, u.name, u.email, u.mobile_number, u.is_service_provider, s.service
+                                       FROM ${tableConfig.USER} as u
+                                       LEFT JOIN ${tableConfig.SERVICES} as s ON s.userId = u.id
+                                       WHERE u.id != ${user_id} 
+                                             AND u.is_service_provider = ${is_service_provider} 
+                                             AND u.status = 1
+                                       GROUP BY u.id
+                                       ORDER BY u.id DESC
                                        LIMIT ${limit} OFFSET ${offset}`;
 
       const service = await commonFunction.getQueryResults(getServiceQuery);
