@@ -151,4 +151,10 @@ module.exports = {
       res.json(results);
     });
   },
+
+  listServiceRatings: async (req, res) => {
+    recommendationModel.listServiceRatings(req).then(async (results) => {
+      res.json(results);
+    });
+  },
 }

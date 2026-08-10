@@ -1167,4 +1167,78 @@ module.exports = {
 
     return deferred.promise;
   },
+
+  listServiceRatings: async (req) => {
+    const {user_id} = req.body;
+    const deferred = q.defer();
+
+    try {
+      if (!user_id) {
+        deferred.resolve({
+          status: 0,
+          message: "user_id is required",
+        });
+        return deferred.promise;
+      }
+
+      const serviceQuery = `SELECT id, rating FROM ${tableConfig.SERVICES} WHERE userId = ${user_id} LIMIT 1`;
+      const services = await commonFunction.getQueryResults(serviceQuery);
+      if (!services || services.length === 0) {
+        deferred.resolve({
+          status: 0,
+          message: "Service not found",
+        });
+        return deferred.promise;
+      }
+
+      const serviceId = services[0].id;
+      const ratingsQuery = `
+        SELECT r.user_id, r.service_id, r.rating, r.comments,
+               u.name, u.profile_url, u.email, u.mobile_number
+        FROM ${tableConfig.RATING} r
+        INNER JOIN ${tableConfig.USER} u ON u.id = r.user_id
+        WHERE r.service_id = ${serviceId}
+        ORDER BY r.rating DESC, u.name ASC
+      `;
+      const ratings = await commonFunction.getQueryResults(ratingsQuery);
+
+      const distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+      let sum = 0;
+      const list = (ratings || []).map((row) => {
+        const star = parseInt(row.rating, 10) || 0;
+        if (star >= 1 && star <= 5) {
+          distribution[star] = (distribution[star] || 0) + 1;
+          sum += star;
+        }
+        return {
+          user_id: row.user_id,
+          name: row.name || "",
+          profile_url: row.profile_url || "",
+          email: row.email || "",
+          mobile_number: row.mobile_number || "",
+          rating: row.rating,
+          comments: row.comments || "",
+        };
+      });
+
+      const totalCount = list.length;
+      const averageRating =
+        totalCount > 0 ? (sum / totalCount).toFixed(1) : "0.0";
+
+      deferred.resolve({
+        status: 1,
+        average_rating: averageRating,
+        total_count: totalCount,
+        distribution,
+        data: list,
+      });
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Unable to load ratings",
+      });
+    }
+
+    return deferred.promise;
+  },
 };

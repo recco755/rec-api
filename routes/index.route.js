@@ -365,6 +365,10 @@ module.exports = (app) => {
     recommendationController.rateService
   );
   app.post(
+    "/api/v1/recommendations/list_service_ratings",
+    recommendationController.listServiceRatings
+  );
+  app.post(
     "/api/v1/recommendations/get_contacts",
     recommendationController.getContacts
   );
