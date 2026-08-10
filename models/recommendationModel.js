@@ -17,6 +17,24 @@ function toFullBusinessIconUrl(req, business_icon) {
   return `${req.protocol}://${host}:8888${sliced}`;
 }
 
+function toSafeIsoDate(value) {
+  if (value == null || value === "") return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith("0000-00-00") ||
+      trimmed === "null" ||
+      trimmed === "undefined"
+    ) {
+      return null;
+    }
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 async function getServiceCommissionField(service_id, field) {
   const query = `SELECT ${field} FROM ${tableConfig.SERVICES} WHERE id = ${service_id} LIMIT 1`;
   const rows = await commonFunction.getQueryResults(query);
@@ -1273,6 +1291,7 @@ module.exports = {
         INNER JOIN ${tableConfig.USER} u ON u.id = r.consumer_id
         WHERE r.service_id = ${serviceId}
           AND r.service_rendered_at IS NOT NULL
+          AND r.service_rendered_at > '1000-01-01'
         ORDER BY r.service_rendered_at DESC
       `;
       const visits = await commonFunction.getQueryResults(visitsQuery);
@@ -1294,9 +1313,7 @@ module.exports = {
           });
         }
         const entry = byCustomer.get(cid);
-        const renderedAt = row.service_rendered_at
-          ? new Date(row.service_rendered_at).toISOString()
-          : null;
+        const renderedAt = toSafeIsoDate(row.service_rendered_at);
         if (renderedAt) {
           entry.service_dates.push(renderedAt);
           entry.visit_count += 1;
