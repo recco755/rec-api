@@ -369,6 +369,10 @@ module.exports = (app) => {
     recommendationController.listServiceRatings
   );
   app.post(
+    "/api/v1/recommendations/list_service_customers",
+    recommendationController.listServiceCustomers
+  );
+  app.post(
     "/api/v1/recommendations/get_contacts",
     recommendationController.getContacts
   );

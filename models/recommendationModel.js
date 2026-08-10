@@ -1241,4 +1241,120 @@ module.exports = {
 
     return deferred.promise;
   },
+
+  listServiceCustomers: async (req) => {
+    const {user_id} = req.body;
+    const deferred = q.defer();
+
+    try {
+      if (!user_id) {
+        deferred.resolve({
+          status: 0,
+          message: "user_id is required",
+        });
+        return deferred.promise;
+      }
+
+      const serviceQuery = `SELECT id FROM ${tableConfig.SERVICES} WHERE userId = ${user_id} LIMIT 1`;
+      const services = await commonFunction.getQueryResults(serviceQuery);
+      if (!services || services.length === 0) {
+        deferred.resolve({
+          status: 0,
+          message: "Service not found",
+        });
+        return deferred.promise;
+      }
+
+      const serviceId = services[0].id;
+      const visitsQuery = `
+        SELECT r.consumer_id, r.recommender_id, r.service_rendered_at, r.status,
+               u.name, u.profile_url, u.email, u.mobile_number
+        FROM ${tableConfig.RECOMMENDATIONS} r
+        INNER JOIN ${tableConfig.USER} u ON u.id = r.consumer_id
+        WHERE r.service_id = ${serviceId}
+          AND r.service_rendered_at IS NOT NULL
+        ORDER BY r.service_rendered_at DESC
+      `;
+      const visits = await commonFunction.getQueryResults(visitsQuery);
+
+      const byCustomer = new Map();
+      for (const row of visits || []) {
+        const cid = String(row.consumer_id);
+        if (!byCustomer.has(cid)) {
+          byCustomer.set(cid, {
+            user_id: row.consumer_id,
+            name: row.name || "",
+            profile_url: row.profile_url || "",
+            email: row.email || "",
+            mobile_number: row.mobile_number || "",
+            visit_count: 0,
+            revisit_count: 0,
+            service_dates: [],
+            revisit_dates: [],
+          });
+        }
+        const entry = byCustomer.get(cid);
+        const renderedAt = row.service_rendered_at
+          ? new Date(row.service_rendered_at).toISOString()
+          : null;
+        if (renderedAt) {
+          entry.service_dates.push(renderedAt);
+          entry.visit_count += 1;
+          const isRevisit =
+            String(row.recommender_id) === String(row.consumer_id);
+          if (isRevisit) {
+            entry.revisit_count += 1;
+            entry.revisit_dates.push(renderedAt);
+          }
+        }
+      }
+
+      const data = Array.from(byCustomer.values()).map((c) => {
+        const dates = [...c.service_dates].sort();
+        return {
+          ...c,
+          service_dates: dates,
+          revisit_dates: [...c.revisit_dates].sort(),
+          first_service_date: dates.length ? dates[0] : null,
+          last_service_date: dates.length ? dates[dates.length - 1] : null,
+        };
+      });
+
+      data.sort((a, b) => {
+        const aLast = a.last_service_date || "";
+        const bLast = b.last_service_date || "";
+        return bLast.localeCompare(aLast);
+      });
+
+      let newCustomers = 0;
+      let returningCustomers = 0;
+      let totalVisits = 0;
+      let totalRevisits = 0;
+      for (const c of data) {
+        totalVisits += c.visit_count;
+        totalRevisits += c.revisit_count;
+        if (c.visit_count > 1) returningCustomers += 1;
+        else newCustomers += 1;
+      }
+
+      deferred.resolve({
+        status: 1,
+        total_customers: data.length,
+        total_visits: totalVisits,
+        total_revisits: totalRevisits,
+        distribution: {
+          new_customers: newCustomers,
+          returning_customers: returningCustomers,
+        },
+        data,
+      });
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Unable to load customers",
+      });
+    }
+
+    return deferred.promise;
+  },
 };

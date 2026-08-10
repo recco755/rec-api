@@ -157,4 +157,10 @@ module.exports = {
       res.json(results);
     });
   },
+
+  listServiceCustomers: async (req, res) => {
+    recommendationModel.listServiceCustomers(req).then(async (results) => {
+      res.json(results);
+    });
+  },
 }
