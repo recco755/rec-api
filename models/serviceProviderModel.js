@@ -32,6 +32,13 @@ function omitUndefined(obj) {
   return cleaned;
 }
 
+function sanitizeServiceDeniedNote(raw) {
+  if (raw == null) return "";
+  const text = String(raw).replace(/\r\n/g, "\n");
+  const lines = text.split("\n").slice(0, 100);
+  return lines.join("\n").trim().slice(0, 8000);
+}
+
 function formatBoostWaitRemaining(expiresAt) {
   const end =
     expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
@@ -622,10 +629,19 @@ module.exports = {
 
   denyRecommendation: async (req) => {
     const deferred = q.defer();
-    const {recommendation_id, status = "service_denied"} = req.body;
+    const {recommendation_id, status = "service_denied", service_denied_note, note} = req.body;
+    const deniedNote = sanitizeServiceDeniedNote(service_denied_note || note);
 
-    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, service_denied_at = ? WHERE id = ?`;
-    const updateData = [status, new Date(), recommendation_id];
+    if (!deniedNote) {
+      deferred.resolve({
+        status: 0,
+        message: "Please enter a note before denying this service",
+      });
+      return deferred.promise;
+    }
+
+    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, service_denied_at = ?, service_denied_note = ? WHERE id = ?`;
+    const updateData = [status, new Date(), deniedNote, recommendation_id];
     const updated = await commonFunction.updateQuery(query, updateData);
 
     const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
@@ -1875,10 +1891,20 @@ module.exports = {
   },
 
   serviceDenied: async (req) => {
-    const {recommendation_id, status = "service_denied"} = req.body;
+    const {recommendation_id, status = "service_denied", service_denied_note, note} = req.body;
     const deferred = q.defer();
-    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET  status = ?, service_denied_at = ? WHERE id = ? `;
-    const updateData = [status, new Date(), recommendation_id];
+    const deniedNote = sanitizeServiceDeniedNote(service_denied_note || note);
+
+    if (!deniedNote) {
+      deferred.resolve({
+        status: 0,
+        message: "Please enter a note before denying this service",
+      });
+      return deferred.promise;
+    }
+
+    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET  status = ?, service_denied_at = ?, service_denied_note = ? WHERE id = ? `;
+    const updateData = [status, new Date(), deniedNote, recommendation_id];
     const updated = await commonFunction.updateQuery(query, updateData);
 
     // const insertStatusQuery = `INSERT INTO ${tableConfig.RECOMMENDATIONs_META} SET ?`;
