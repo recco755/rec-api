@@ -22,7 +22,16 @@ module.exports = {
   insertQuery: async (query, data) => {
     var deferred = q.defer();
     var result = [];
-    sql.query(query, data, function (err, results) {
+    let payload = data;
+    if (data && !Array.isArray(data) && typeof data === "object") {
+      payload = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          payload[key] = value;
+        }
+      }
+    }
+    sql.query(query, payload, function (err, results) {
       if (err) {
         console.log(err);
         deferred.resolve(result);

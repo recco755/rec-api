@@ -22,6 +22,16 @@ function toFullBusinessIconUrl(req, business_icon) {
 
 const BOOST_DAILY_LIMIT = 10;
 
+function omitUndefined(obj) {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(obj || {})) {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 function formatBoostWaitRemaining(expiresAt) {
   const end =
     expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
@@ -96,6 +106,7 @@ async function getProviderBoostPushMeta(providerUserId) {
 module.exports = {
   createOrEditService: async (req) => {
     const deferred = q.defer();
+    try {
     const {
       user_id,
       business_name,
@@ -121,14 +132,24 @@ module.exports = {
       youtube_video_link,
       show_youtube_on_cards,
       is_accepting_recommendations,
-    } = req.body;
+    } = req.body || {};
 
     console.log(req.body);
 
+    if (user_id === undefined || user_id === null || user_id === "") {
+      deferred.resolve({status: 0, message: "Please enter user_id"});
+      return deferred.promise;
+    }
+
     // Check if a service already exists for the user
-    const existCheckQuery = `SELECT COUNT(*) as count FROM ${tableConfig.SERVICES} WHERE userId = ${user_id}`;
+    const existCheckQuery = `SELECT COUNT(*) as count FROM ${tableConfig.SERVICES} WHERE userId = ${sql.escape(String(user_id))}`;
     const serviceExists = await commonFunction.getQueryResults(existCheckQuery);
     const date = new Date();
+
+    if (!serviceExists || !serviceExists[0]) {
+      deferred.resolve({status: 0, message: "Unable to check existing service. Please try again"});
+      return deferred.promise;
+    }
 
     if (serviceExists[0].count > 0) {
       // If service exists, update it
@@ -233,7 +254,7 @@ module.exports = {
       // If service does not exist, create a new service
       console.log("insert query.......... ");
       const insertServiceQuery = `INSERT INTO ${tableConfig.SERVICES} SET ?`;
-      const insertData = {
+      const insertData = omitUndefined({
         userId: user_id,
         business_name,
         service,
@@ -253,14 +274,19 @@ module.exports = {
         carousel_image_2,
         carousel_image_3,
         youtube_video_link,
-        show_youtube_on_cards,
+        show_youtube_on_cards:
+          show_youtube_on_cards === undefined ||
+          show_youtube_on_cards === null ||
+          show_youtube_on_cards === ""
+            ? 1
+            : Number(show_youtube_on_cards) ? 1 : 0,
         is_accepting_recommendations:
           is_accepting_recommendations === undefined ||
           is_accepting_recommendations === null ||
           is_accepting_recommendations === ""
             ? 1
             : Number(is_accepting_recommendations) ? 1 : 0,
-      };
+      });
 
       const inserted = await commonFunction.insertQuery(insertServiceQuery, insertData);
       if (inserted.affectedRows > 0) {
@@ -297,6 +323,13 @@ module.exports = {
           message: "Something went wrong",
         });
       }
+    }
+    } catch (err) {
+      console.log("createOrEditService error", err);
+      deferred.resolve({
+        status: 0,
+        message: (err && err.sqlMessage) || err.message || "Something went wrong",
+      });
     }
 
     return deferred.promise;
@@ -1454,43 +1487,71 @@ module.exports = {
       is_service_provider = "1",
       commission_guideline,
       repeated_customer_commission,
-    } = req.body;
+    } = req.body || {};
     const deferred = q.defer();
-    const createData = {
-      userId: user_id,
-      full_name: full_name,
-      email: email,
-      mobile_number: mobile_number,
-      business_name: business_name,
-      address: address,
-      business_type: business_type,
-      shop_license: shop_license,
-      commission_guideline: commission_guideline,
-      repeated_customer_commission: repeated_customer_commission,
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
+    try {
+      if (user_id === undefined || user_id === null || user_id === "") {
+        deferred.resolve({status: 0, message: "Please enter user_id"});
+        return deferred.promise;
+      }
 
-    const query = `INSERT INTO ${tableConfig.BUSINESS_DETAILS} SET ?`;
-    const created = await commonFunction.insertQuery(query, createData);
-
-    const updateQuery = `UPDATE ${tableConfig.USER} SET is_service_provider = ? WHERE id = ?`;
-    const updateData = [is_service_provider, user_id];
-    await commonFunction.updateQuery(updateQuery, updateData);
-
-    // Set display contact (for cards) from Required form - separate from login email/phone
-    const displayUpdateQuery = `UPDATE ${tableConfig.USER} SET display_email = ?, display_phone = ? WHERE id = ?`;
-    await commonFunction.updateQuery(displayUpdateQuery, [email || null, mobile_number || null, user_id]);
-
-    if (created.affectedRows > 0) {
-      deferred.resolve({
-        status: 1,
-        message: "Business details updated successfully",
+      const detailsData = omitUndefined({
+        userId: user_id,
+        full_name: full_name,
+        email: email,
+        mobile_number: mobile_number,
+        business_name: business_name,
+        address: address,
+        business_type: business_type,
+        shop_license: shop_license,
+        commission_guideline: commission_guideline,
+        repeated_customer_commission: repeated_customer_commission,
+        updated_at: new Date(),
       });
-    } else {
+
+      const existing = await commonFunction.getQueryResults(
+        `SELECT id FROM ${tableConfig.BUSINESS_DETAILS} WHERE userId = ${sql.escape(String(user_id))} LIMIT 1`
+      );
+
+      let saved;
+      if (existing && existing.length > 0) {
+        const {userId, ...updateFields} = detailsData;
+        saved = await commonFunction.updateQuery(
+          `UPDATE ${tableConfig.BUSINESS_DETAILS} SET ? WHERE userId = ?`,
+          [updateFields, user_id]
+        );
+      } else {
+        detailsData.created_at = new Date();
+        saved = await commonFunction.insertQuery(
+          `INSERT INTO ${tableConfig.BUSINESS_DETAILS} SET ?`,
+          detailsData
+        );
+      }
+
+      const updateQuery = `UPDATE ${tableConfig.USER} SET is_service_provider = ? WHERE id = ?`;
+      const updateData = [is_service_provider, user_id];
+      await commonFunction.updateQuery(updateQuery, updateData);
+
+      // Set display contact (for cards) from Required form - separate from login email/phone
+      const displayUpdateQuery = `UPDATE ${tableConfig.USER} SET display_email = ?, display_phone = ? WHERE id = ?`;
+      await commonFunction.updateQuery(displayUpdateQuery, [email || null, mobile_number || null, user_id]);
+
+      if (saved && saved.affectedRows > 0) {
+        deferred.resolve({
+          status: 1,
+          message: "Business details updated successfully",
+        });
+      } else {
+        deferred.resolve({
+          status: 0,
+          message: "Something went wrong! please try again",
+        });
+      }
+    } catch (err) {
+      console.log("saveBusinessDetails error", err);
       deferred.resolve({
         status: 0,
-        message: "Something went wrong! please try again",
+        message: (err && err.sqlMessage) || err.message || "Something went wrong! please try again",
       });
     }
 
