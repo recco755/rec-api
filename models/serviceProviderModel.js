@@ -622,21 +622,23 @@ module.exports = {
 
   denyRecommendation: async (req) => {
     const deferred = q.defer();
-    const {recommendation_id, status = "declined", remarks = ""} = req.body;
+    const {recommendation_id, status = "service_denied"} = req.body;
 
-    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, declined_at = ? WHERE id = ?`;
+    const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, service_denied_at = ? WHERE id = ?`;
     const updateData = [status, new Date(), recommendation_id];
-    const service = await commonFunction.updateQuery(query, updateData);
+    const updated = await commonFunction.updateQuery(query, updateData);
 
     const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
                                                  u.platform as platform,
+                                                 u2.name as consumer_name,
                                         u1.name as provider_name FROM ${tableConfig.RECOMMENDATIONS} r 
                                 LEFT JOIN ${tableConfig.USER} u ON u.id = r.recommender_id
                                 LEFT JOIN ${tableConfig.USER} u1 ON u1.id = r.service_provider_id
+                                LEFT JOIN ${tableConfig.USER} u2 ON u2.id = r.consumer_id
                                 WHERE r.id = ${recommendation_id}`);
 
     if (users && users.length > 0 && users[0].recommender_token && users[0].recommender_token !== "") {
-      const {platform, provider_name, recommender_token} = users[0];
+      const {platform, provider_name, consumer_name, recommender_token} = users[0];
       const recommendationId = recommendation_id;
 
       let message;
@@ -644,8 +646,8 @@ module.exports = {
       if (platform === "android") {
         message = {
           data: {
-            title: "Recommendation declined",
-            body: `${provider_name} declined your recommendation`,
+            title: "Service denied",
+            body: `${provider_name} denied the service to ${consumer_name}`,
             recommendation_id: `${recommendationId}`,
           },
           android: {
@@ -656,12 +658,12 @@ module.exports = {
       } else {
         message = {
           notification: {
-            title: "Recommendation declined",
-            body: `${provider_name} declined your recommendation`,
+            title: "Service denied",
+            body: `${provider_name} denied the service to ${consumer_name}`,
           },
           data: {
-            title: "Recommendation declined",
-            body: `${provider_name} declined your recommendation`,
+            title: "Service denied",
+            body: `${provider_name} denied the service to ${consumer_name}`,
             recommendation_id: `${recommendationId}`,
           },
           apns: {
@@ -679,8 +681,10 @@ module.exports = {
     }
 
     deferred.resolve({
-      status: 1,
-      message: "Recommendation denied successfully",
+      status: updated && updated.affectedRows > 0 ? 1 : 0,
+      message: updated && updated.affectedRows > 0
+        ? "The service is denied"
+        : "Something went wrong",
     });
 
     return deferred.promise;
