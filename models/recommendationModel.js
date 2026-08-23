@@ -1134,14 +1134,25 @@ module.exports = {
   },
 
   deleteRecommendation: async (req) => {
-    const {recommendation_id, status = "deleted"} = req.body;
+    const body = req.body || {};
+    const rawId = body.recommendation_id ?? body.id;
+    const recommendation_id = parseInt(rawId, 10);
+    const status = body.status || "deleted";
 
     const deferred = q.defer();
-    const updateQuery = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ? WHERE id = ?`;
-    const updateData = [status, recommendation_id];
-    const deleted = await commonFunction.insertQuery(updateQuery, updateData);
+    if (!Number.isInteger(recommendation_id) || recommendation_id <= 0) {
+      deferred.resolve({
+        status: 0,
+        message: "recommendation_id required",
+      });
+      return deferred.promise;
+    }
 
-    if (deleted.affectedRows > 0) {
+    const updateQuery = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, updated_at = ? WHERE id = ?`;
+    const updateData = [status, new Date(), recommendation_id];
+    const deleted = await commonFunction.updateQuery(updateQuery, updateData);
+
+    if (deleted && deleted.affectedRows > 0) {
       deferred.resolve({
         status: 1,
         message: "deleted successfully",
