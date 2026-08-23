@@ -625,7 +625,7 @@ module.exports = {
     const {recommendation_id, status = "declined", remarks = ""} = req.body;
 
     const query = `UPDATE ${tableConfig.RECOMMENDATIONS} SET status = ?, declined_at = ? WHERE id = ?`;
-    const updateData = [status, new Date(), remarks, recommendation_id];
+    const updateData = [status, new Date(), recommendation_id];
     const service = await commonFunction.updateQuery(query, updateData);
 
     const users = await getQueryResults(`SELECT u.registration_token as recommender_token, 
