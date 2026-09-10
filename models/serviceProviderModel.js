@@ -59,11 +59,60 @@ function formatBoostWaitRemaining(expiresAt) {
   };
 }
 
+function boostDeliveryCardSelectSql() {
+  return `d.id AS delivery_id,
+      d.expires_at AS offer_expires_at,
+      d.shared_by_user_id,
+      sharer.name AS shared_by_name,
+      b.user_id AS provider_user_id,
+      b.business_service_name, b.product_name, b.boost_image_url,
+      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
+      b.location_address, b.location_latitude, b.location_longitude
+      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
+      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+      LEFT JOIN ${tableConfig.USER} sharer ON sharer.id = d.shared_by_user_id`;
+}
+
+function mapBoostDeliveryItem(row, baseUrl) {
+  const boost_image_url = row.boost_image_url
+    ? row.boost_image_url.startsWith("http")
+      ? row.boost_image_url
+      : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
+    : null;
+  const offerExpires =
+    row.offer_expires_at instanceof Date
+      ? row.offer_expires_at.toISOString()
+      : row.offer_expires_at;
+  const sharedByName = row.shared_by_name
+    ? String(row.shared_by_name).trim()
+    : "";
+  return {
+    delivery_id: row.delivery_id,
+    boost_image_url,
+    offer_expires_at: offerExpires,
+    user_id: row.provider_user_id,
+    business_service_name: row.business_service_name,
+    product_name: row.product_name,
+    before_price: row.before_price,
+    after_price: row.after_price,
+    email: row.email,
+    phone_number: row.phone_number,
+    website_link: row.website_link,
+    description: row.description,
+    location_address: row.location_address,
+    location_latitude: row.location_latitude,
+    location_longitude: row.location_longitude,
+    shared_by_user_id: row.shared_by_user_id || null,
+    shared_by_name: sharedByName || null,
+  };
+}
+
 async function getProviderBoostPushMeta(providerUserId) {
   const dailyRows = await commonFunction.getQueryResults(
     `SELECT COUNT(DISTINCT created_at) AS pushes_today
      FROM ${tableConfig.SERVICE_BOOST_DELIVERY}
      WHERE provider_user_id = ${providerUserId}
+     AND shared_by_user_id IS NULL
      AND created_at >= CURDATE()
      AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)`
   );
@@ -77,6 +126,7 @@ async function getProviderBoostPushMeta(providerUserId) {
             COUNT(DISTINCT consumer_user_id) AS recipient_count
      FROM ${tableConfig.SERVICE_BOOST_DELIVERY}
      WHERE provider_user_id = ${providerUserId}
+     AND shared_by_user_id IS NULL
      AND expires_at > NOW()`
   );
 
@@ -2408,7 +2458,7 @@ module.exports = {
 
     if (pushMeta.has_active_boost && forceReplace) {
       await commonFunction.updateQuery(
-        `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW()`,
+        `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW() AND shared_by_user_id IS NULL`,
         [providerUserId]
       );
     }
@@ -2467,7 +2517,7 @@ module.exports = {
       return deferred.promise;
     }
     const updated = await commonFunction.updateQuery(
-      `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW()`,
+      `UPDATE ${tableConfig.SERVICE_BOOST_DELIVERY} SET expires_at = NOW() WHERE provider_user_id = ? AND expires_at > NOW() AND shared_by_user_id IS NULL`,
       [providerUserId]
     );
     const cancelled = updated.affectedRows || 0;
@@ -2514,14 +2564,7 @@ module.exports = {
         ? parseInt(countRows[0].total_count, 10) || 0
         : 0;
 
-    const qText = `SELECT d.id AS delivery_id,
-      d.expires_at AS offer_expires_at,
-      b.user_id AS provider_user_id,
-      b.business_service_name, b.product_name, b.boost_image_url,
-      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
-      b.location_address, b.location_latitude, b.location_longitude
-      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
-      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+    const qText = `SELECT ${boostDeliveryCardSelectSql()}
       WHERE ${whereClause}
       ORDER BY d.created_at DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -2540,35 +2583,7 @@ module.exports = {
       });
       return deferred.promise;
     }
-    const mapRow = (row) => {
-      const boost_image_url = row.boost_image_url
-        ? row.boost_image_url.startsWith("http")
-          ? row.boost_image_url
-          : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
-        : null;
-      const offerExpires =
-        row.offer_expires_at instanceof Date
-          ? row.offer_expires_at.toISOString()
-          : row.offer_expires_at;
-      return {
-        delivery_id: row.delivery_id,
-        boost_image_url,
-        offer_expires_at: offerExpires,
-        user_id: row.provider_user_id,
-        business_service_name: row.business_service_name,
-        product_name: row.product_name,
-        before_price: row.before_price,
-        after_price: row.after_price,
-        email: row.email,
-        phone_number: row.phone_number,
-        website_link: row.website_link,
-        description: row.description,
-        location_address: row.location_address,
-        location_latitude: row.location_latitude,
-        location_longitude: row.location_longitude,
-      };
-    };
-    const items = rows.map(mapRow);
+    const items = rows.map((row) => mapBoostDeliveryItem(row, baseUrl));
     const first = items[0];
     const hasMore = offset + items.length < totalCount;
     deferred.resolve({
@@ -2637,14 +2652,7 @@ module.exports = {
         ? parseInt(countRows[0].total_count, 10) || 0
         : 0;
 
-    const qText = `SELECT d.id AS delivery_id,
-      d.expires_at AS offer_expires_at,
-      b.user_id AS provider_user_id,
-      b.business_service_name, b.product_name, b.boost_image_url,
-      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
-      b.location_address, b.location_latitude, b.location_longitude
-      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
-      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+    const qText = `SELECT ${boostDeliveryCardSelectSql()}
       WHERE ${whereClause}
       ORDER BY d.dismissed_at DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -2663,35 +2671,7 @@ module.exports = {
       });
       return deferred.promise;
     }
-    const mapRow = (row) => {
-      const boost_image_url = row.boost_image_url
-        ? row.boost_image_url.startsWith("http")
-          ? row.boost_image_url
-          : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
-        : null;
-      const offerExpires =
-        row.offer_expires_at instanceof Date
-          ? row.offer_expires_at.toISOString()
-          : row.offer_expires_at;
-      return {
-        delivery_id: row.delivery_id,
-        boost_image_url,
-        offer_expires_at: offerExpires,
-        user_id: row.provider_user_id,
-        business_service_name: row.business_service_name,
-        product_name: row.product_name,
-        before_price: row.before_price,
-        after_price: row.after_price,
-        email: row.email,
-        phone_number: row.phone_number,
-        website_link: row.website_link,
-        description: row.description,
-        location_address: row.location_address,
-        location_latitude: row.location_latitude,
-        location_longitude: row.location_longitude,
-      };
-    };
-    const items = rows.map(mapRow);
+    const items = rows.map((row) => mapBoostDeliveryItem(row, baseUrl));
     const first = items[0];
     const hasMore = offset + items.length < totalCount;
     deferred.resolve({
@@ -2760,14 +2740,7 @@ module.exports = {
         ? parseInt(countRows[0].total_count, 10) || 0
         : 0;
 
-    const qText = `SELECT d.id AS delivery_id,
-      d.expires_at AS offer_expires_at,
-      b.user_id AS provider_user_id,
-      b.business_service_name, b.product_name, b.boost_image_url,
-      b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
-      b.location_address, b.location_latitude, b.location_longitude
-      FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
-      INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+    const qText = `SELECT ${boostDeliveryCardSelectSql()}
       WHERE ${whereClause}
       ORDER BY d.liked_at DESC
       LIMIT ${limit} OFFSET ${offset}`;
@@ -2786,35 +2759,7 @@ module.exports = {
       });
       return deferred.promise;
     }
-    const mapRow = (row) => {
-      const boost_image_url = row.boost_image_url
-        ? row.boost_image_url.startsWith("http")
-          ? row.boost_image_url
-          : `${baseUrl}${row.boost_image_url.slice(row.boost_image_url.lastIndexOf("/"))}`
-        : null;
-      const offerExpires =
-        row.offer_expires_at instanceof Date
-          ? row.offer_expires_at.toISOString()
-          : row.offer_expires_at;
-      return {
-        delivery_id: row.delivery_id,
-        boost_image_url,
-        offer_expires_at: offerExpires,
-        user_id: row.provider_user_id,
-        business_service_name: row.business_service_name,
-        product_name: row.product_name,
-        before_price: row.before_price,
-        after_price: row.after_price,
-        email: row.email,
-        phone_number: row.phone_number,
-        website_link: row.website_link,
-        description: row.description,
-        location_address: row.location_address,
-        location_latitude: row.location_latitude,
-        location_longitude: row.location_longitude,
-      };
-    };
-    const items = rows.map(mapRow);
+    const items = rows.map((row) => mapBoostDeliveryItem(row, baseUrl));
     const first = items[0];
     const hasMore = offset + items.length < totalCount;
     deferred.resolve({
@@ -2830,6 +2775,122 @@ module.exports = {
       offer_expires_at: first.offer_expires_at,
       message: "OK",
     });
+    return deferred.promise;
+  },
+
+  shareBoostDeliveryToContacts: async (req) => {
+    const deferred = q.defer();
+    try {
+    const sharerId = parseInt(req.body.user_id, 10);
+    const sourceDeliveryId = parseInt(req.body.delivery_id, 10);
+    if (!sharerId || !sourceDeliveryId) {
+      deferred.resolve({ status: 0, message: "Invalid parameters" });
+      return deferred.promise;
+    }
+
+    let targets = req.body.target_user_ids;
+    if (typeof targets === "string") {
+      try {
+        targets = JSON.parse(targets);
+      } catch (e) {
+        targets = [];
+      }
+    }
+    if (!Array.isArray(targets)) {
+      targets = [];
+    }
+
+    const uniqueTargets = [
+      ...new Set(
+        targets
+          .map((id) => parseInt(id, 10))
+          .filter((id) => Number.isFinite(id) && id > 0 && id !== sharerId)
+      ),
+    ];
+
+    if (uniqueTargets.length === 0) {
+      deferred.resolve({ status: 0, message: "No valid contacts selected" });
+      return deferred.promise;
+    }
+
+    const sourceRows = await commonFunction.getQueryResults(
+      `SELECT d.id, d.provider_user_id, d.expires_at
+       FROM ${tableConfig.SERVICE_BOOST_DELIVERY} d
+       INNER JOIN ${tableConfig.SERVICE_BOOST} b ON b.user_id = d.provider_user_id
+       WHERE d.id = ${sourceDeliveryId}
+         AND d.consumer_user_id = ${sharerId}
+         AND d.expires_at > NOW()
+       LIMIT 1`
+    );
+    if (!sourceRows || sourceRows.length === 0) {
+      deferred.resolve({
+        status: 0,
+        message: "This deal is no longer available to share",
+      });
+      return deferred.promise;
+    }
+
+    const source = sourceRows[0];
+    const providerUserId = parseInt(source.provider_user_id, 10);
+    const now = new Date();
+    let inserted = 0;
+    let skipped = 0;
+
+    for (const consumerUserId of uniqueTargets) {
+      if (consumerUserId === providerUserId) {
+        skipped += 1;
+        continue;
+      }
+      const existing = await commonFunction.getQueryResults(
+        `SELECT id FROM ${tableConfig.SERVICE_BOOST_DELIVERY}
+         WHERE consumer_user_id = ${consumerUserId}
+           AND provider_user_id = ${providerUserId}
+           AND expires_at > NOW()
+         LIMIT 1`
+      );
+      if (existing && existing.length > 0) {
+        skipped += 1;
+        continue;
+      }
+      const insertData = {
+        provider_user_id: providerUserId,
+        consumer_user_id: consumerUserId,
+        expires_at: source.expires_at,
+        dismissed_at: null,
+        created_at: now,
+        shared_by_user_id: sharerId,
+        source_delivery_id: sourceDeliveryId,
+      };
+      const ins = await commonFunction.insertQuery(
+        `INSERT INTO ${tableConfig.SERVICE_BOOST_DELIVERY} SET ?`,
+        insertData
+      );
+      if (ins && ins.affectedRows > 0) inserted += 1;
+    }
+
+    let message;
+    if (inserted > 0 && skipped > 0) {
+      message = `Shared with ${inserted} Reccomman contact(s). ${skipped} already have this deal.`;
+    } else if (inserted > 0) {
+      message = `Shared with ${inserted} Reccomman contact(s).`;
+    } else if (skipped > 0) {
+      message = "Selected contacts already have this deal.";
+    } else {
+      message = "Could not share this deal";
+    }
+
+    deferred.resolve({
+      status: inserted > 0 ? 1 : 0,
+      message,
+      inserted,
+      skipped,
+    });
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Could not share this deal",
+      });
+    }
     return deferred.promise;
   },
 };

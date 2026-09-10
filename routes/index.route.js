@@ -257,6 +257,10 @@ module.exports = (app) => {
     "/api/v1/service_provider/home_boost_likes",
     serviceProviderController.getHomeBoostLikes
   );
+  app.post(
+    "/api/v1/service_provider/share_boost_delivery",
+    serviceProviderController.shareBoostDeliveryToContacts
+  );
 
   app.post(
     "/api/v1/circle_query/get_query",

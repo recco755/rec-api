@@ -191,6 +191,12 @@ module.exports = {
     });
   },
 
+  shareBoostDeliveryToContacts: async (req, res) => {
+    serviceProviderModel.shareBoostDeliveryToContacts(req).then((results) => {
+      res.json(results);
+    });
+  },
+
   counterApprove: async (req, res) => {
     serviceProviderModel.counterApprove(req).then(async (results) => {
       res.json(results);
