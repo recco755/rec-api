@@ -420,7 +420,7 @@ module.exports = {
         message:
           value === 1
             ? "Your service is now available"
-            : "Your service is hidden from Select service",
+            : "Switched to Offline. Users will not be able to recommend your business",
         data: {is_accepting_recommendations: value},
       });
     } else {
