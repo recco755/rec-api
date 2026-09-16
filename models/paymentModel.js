@@ -13,16 +13,20 @@ const {messaging} = require("firebase-admin");
 const axios = require("axios");
 module.exports = {
   checkout: async (req) => {
-    const {amount, payment_for, user_id, recommendation_id} = req.body;
+    const {amount, payment_for, user_id, recommendation_id, payment_method, email, name} = req.body;
 
     const deferred = q.defer();
 
     try {
       const amountCents = Number(amount);
       const isCommissionUnderStripeMin = payment_for === "1" && !Number.isNaN(amountCents) && amountCents > 0 && amountCents < 50;
+      const isPayNow = String(payment_method || "").toLowerCase() === "paynow";
 
       // Create or retrieve the Stripe Customer object associated with your user.
-      const customer = await stripe.customers.create(); // This example just creates a new Customer every time
+      const customerPayload = {};
+      if (email) customerPayload.email = email;
+      if (name) customerPayload.name = name;
+      const customer = await stripe.customers.create(customerPayload); // This example just creates a new Customer every time
       // Create an ephemeral key for the Customer; this allows the app to display saved payment methods and save new ones
       const ephemeralKey = await stripe.ephemeralKeys.create(
         {customer: customer.id},
@@ -32,14 +36,20 @@ module.exports = {
       let paymentIntent = null;
       if (!isCommissionUnderStripeMin) {
         // Card/Stripe has a minimum amount (e.g. 50 cents). Only create PaymentIntent when amount is allowed.
-        paymentIntent = await stripe.paymentIntents.create({
+        const intentParams = {
           amount: payment_for === "0" ? (Number(amount) + Number(amount) * 0.04).toString() : amount,
           currency: "SGD",
           customer: customer.id,
-          automatic_payment_methods: {
+        };
+        if (isPayNow) {
+          intentParams.amount = Math.round(Number(amount));
+          intentParams.payment_method_types = ["paynow"];
+        } else {
+          intentParams.automatic_payment_methods = {
             enabled: true,
-          },
-        });
+          };
+        }
+        paymentIntent = await stripe.paymentIntents.create(intentParams);
       }
 
       // Insert customer into the database
