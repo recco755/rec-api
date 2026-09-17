@@ -184,8 +184,11 @@ module.exports = {
       deferred.resolve({ status: 0, message: "Invalid user_id" });
       return deferred.promise;
     }
-    if (!Number.isFinite(durationMinutes) || durationMinutes < 1) {
+    if (!Number.isFinite(durationMinutes) || durationMinutes < 60) {
       durationMinutes = 60;
+    }
+    if (durationMinutes > 4320) {
+      durationMinutes = 4320;
     }
 
     let targets = req.body.target_user_ids;
