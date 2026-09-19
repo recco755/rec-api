@@ -1112,6 +1112,8 @@ module.exports = {
             profile_url: user.profile_url,
             user_exists: 1,
             is_service_provider: user.is_service_provider,
+            display_name: user.name || "",
+            name: user.name || "",
           };
         } else {
           return {
@@ -1120,6 +1122,8 @@ module.exports = {
             profile_url: "",
             user_exists: 0,
             is_service_provider: 0,
+            display_name: "",
+            name: "",
           };
         }
       })
