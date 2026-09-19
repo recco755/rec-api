@@ -65,6 +65,7 @@ function boostDeliveryCardSelectSql() {
       d.shared_by_user_id,
       sharer.name AS shared_by_name,
       b.user_id AS provider_user_id,
+      COALESCE(b.updated_at, b.created_at, d.created_at) AS advert_posted_at,
       b.business_service_name, b.product_name, b.boost_image_url,
       b.before_price, b.after_price, b.email, b.phone_number, b.website_link, b.description,
       b.location_address, b.location_latitude, b.location_longitude
@@ -83,6 +84,10 @@ function mapBoostDeliveryItem(row, baseUrl) {
     row.offer_expires_at instanceof Date
       ? row.offer_expires_at.toISOString()
       : row.offer_expires_at;
+  const advertPosted =
+    row.advert_posted_at instanceof Date
+      ? row.advert_posted_at.toISOString()
+      : row.advert_posted_at;
   const sharedByName = row.shared_by_name
     ? String(row.shared_by_name).trim()
     : "";
@@ -90,6 +95,7 @@ function mapBoostDeliveryItem(row, baseUrl) {
     delivery_id: row.delivery_id,
     boost_image_url,
     offer_expires_at: offerExpires,
+    advert_posted_at: advertPosted || null,
     user_id: row.provider_user_id,
     business_service_name: row.business_service_name,
     product_name: row.product_name,
