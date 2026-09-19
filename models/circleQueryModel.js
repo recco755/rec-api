@@ -97,6 +97,7 @@ function mapDeliveryRow(row) {
     requester_user_id: row.requester_user_id,
     requester_name: row.requester_name,
     requester_profile_url: toFullProfileUrl(row.requester_profile_url),
+    requester_mobile: row.requester_mobile || "",
     query_text: row.query_text,
     status: "open",
   };
@@ -371,7 +372,8 @@ module.exports = {
       cq.user_id AS requester_user_id,
       cq.query_text,
       u.name AS requester_name,
-      u.profile_url AS requester_profile_url
+      u.profile_url AS requester_profile_url,
+      u.mobile_number AS requester_mobile
       FROM ${tableConfig.CIRCLE_QUERY_DELIVERY} d
       INNER JOIN ${tableConfig.CIRCLE_QUERY} cq ON cq.user_id = d.requester_user_id
       INNER JOIN ${tableConfig.USER} u ON u.id = d.requester_user_id
@@ -484,7 +486,8 @@ module.exports = {
       cq.user_id AS requester_user_id,
       cq.query_text,
       u.name AS requester_name,
-      u.profile_url AS requester_profile_url
+      u.profile_url AS requester_profile_url,
+      u.mobile_number AS requester_mobile
       FROM ${tableConfig.CIRCLE_QUERY_DELIVERY} d
       INNER JOIN ${tableConfig.CIRCLE_QUERY} cq ON cq.user_id = d.requester_user_id
       INNER JOIN ${tableConfig.USER} u ON u.id = d.requester_user_id
@@ -559,7 +562,8 @@ module.exports = {
       cq.user_id AS requester_user_id,
       cq.query_text,
       u.name AS requester_name,
-      u.profile_url AS requester_profile_url
+      u.profile_url AS requester_profile_url,
+      u.mobile_number AS requester_mobile
       FROM ${tableConfig.CIRCLE_QUERY_DELIVERY} d
       INNER JOIN ${tableConfig.CIRCLE_QUERY} cq ON cq.user_id = d.requester_user_id
       INNER JOIN ${tableConfig.USER} u ON u.id = d.requester_user_id
@@ -595,6 +599,121 @@ module.exports = {
       delivery_id: first.delivery_id,
       message: "OK",
     });
+    return deferred.promise;
+  },
+
+  shareCircleQueryDeliveryToContacts: async (req) => {
+    const deferred = q.defer();
+    try {
+      const sharerId = parseInt(req.body.user_id, 10);
+      const sourceDeliveryId = parseInt(req.body.delivery_id, 10);
+      if (!sharerId || !sourceDeliveryId) {
+        deferred.resolve({ status: 0, message: "Invalid parameters" });
+        return deferred.promise;
+      }
+
+      let targets = req.body.target_user_ids;
+      if (typeof targets === "string") {
+        try {
+          targets = JSON.parse(targets);
+        } catch (e) {
+          targets = [];
+        }
+      }
+      if (!Array.isArray(targets)) {
+        targets = [];
+      }
+
+      const uniqueTargets = [
+        ...new Set(
+          targets
+            .map((id) => parseInt(id, 10))
+            .filter((id) => Number.isFinite(id) && id > 0 && id !== sharerId)
+        ),
+      ];
+
+      if (uniqueTargets.length === 0) {
+        deferred.resolve({ status: 0, message: "No valid contacts selected" });
+        return deferred.promise;
+      }
+
+      const sourceRows = await commonFunction.getQueryResults(
+        `SELECT d.id, d.requester_user_id, d.expires_at
+         FROM ${tableConfig.CIRCLE_QUERY_DELIVERY} d
+         INNER JOIN ${tableConfig.CIRCLE_QUERY} cq ON cq.user_id = d.requester_user_id
+         WHERE d.id = ${sourceDeliveryId}
+           AND d.recipient_user_id = ${sharerId}
+           AND d.expires_at > NOW()
+         LIMIT 1`
+      );
+      if (!sourceRows || sourceRows.length === 0) {
+        deferred.resolve({
+          status: 0,
+          message: "This request is no longer available to share",
+        });
+        return deferred.promise;
+      }
+
+      const source = sourceRows[0];
+      const requesterUserId = parseInt(source.requester_user_id, 10);
+      const now = new Date();
+      let inserted = 0;
+      let skipped = 0;
+
+      for (const recipientUserId of uniqueTargets) {
+        if (recipientUserId === requesterUserId) {
+          skipped += 1;
+          continue;
+        }
+        const existing = await commonFunction.getQueryResults(
+          `SELECT id FROM ${tableConfig.CIRCLE_QUERY_DELIVERY}
+           WHERE recipient_user_id = ${recipientUserId}
+             AND requester_user_id = ${requesterUserId}
+             AND expires_at > NOW()
+           LIMIT 1`
+        );
+        if (existing && existing.length > 0) {
+          skipped += 1;
+          continue;
+        }
+        const insertData = {
+          requester_user_id: requesterUserId,
+          recipient_user_id: recipientUserId,
+          expires_at: source.expires_at,
+          dismissed_at: null,
+          liked_at: null,
+          created_at: now,
+        };
+        const ins = await commonFunction.insertQuery(
+          `INSERT INTO ${tableConfig.CIRCLE_QUERY_DELIVERY} SET ?`,
+          insertData
+        );
+        if (ins && ins.affectedRows > 0) inserted += 1;
+      }
+
+      let message;
+      if (inserted > 0 && skipped > 0) {
+        message = `Shared with ${inserted} Reccomman contact(s). ${skipped} already have this request.`;
+      } else if (inserted > 0) {
+        message = `Shared with ${inserted} Reccomman contact(s).`;
+      } else if (skipped > 0) {
+        message = "Selected contacts already have this request.";
+      } else {
+        message = "Could not share this request";
+      }
+
+      deferred.resolve({
+        status: inserted > 0 ? 1 : 0,
+        message,
+        inserted,
+        skipped,
+      });
+    } catch (error) {
+      deferred.resolve({
+        status: 0,
+        message: error.message || "Could not share this request",
+      });
+    }
     return deferred.promise;
   },
 };

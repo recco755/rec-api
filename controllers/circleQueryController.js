@@ -62,4 +62,10 @@ module.exports = {
       res.json(results);
     });
   },
+
+  shareCircleQueryDeliveryToContacts: async (req, res) => {
+    circleQueryModel.shareCircleQueryDeliveryToContacts(req).then((results) => {
+      res.json(results);
+    });
+  },
 };

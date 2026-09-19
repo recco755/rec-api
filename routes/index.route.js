@@ -302,6 +302,10 @@ module.exports = (app) => {
     "/api/v1/circle_query/home_query_likes",
     circleQueryController.getHomeCircleQueryLikes
   );
+  app.post(
+    "/api/v1/circle_query/share_query_delivery",
+    circleQueryController.shareCircleQueryDeliveryToContacts
+  );
 
   // User or Recommendations
   app.post(
